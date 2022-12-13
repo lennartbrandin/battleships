@@ -12,15 +12,16 @@ class boat:
 
     def __str__(self):
         """return ID of boat"""
-        return "X" if self.isSunk() else str(self.ID)
+        return "S" if self.isSunk() else str(self.ID)
 
 
     def hit(self, x, y):
         """Hit a coordinate on the boat"""
+        boatX, boatY = self.xPos-1, self.yPos-1 # Convert coordinates to array indexes
         if self.isVertical:
-            self.isHit[y - self.yPos] = True
+            self.isHit[y - boatY] = True
         else:
-            self.isHit[x - self.xPos] = True
+            self.isHit[x - boatX] = True
         # Returns true is boat is sunk
         return self.isSunk()
 
@@ -40,3 +41,7 @@ class boat:
     def getIntegrity(self):
         """Return the integrity of the boat"""
         return self.isHit
+
+    def getCoordinates(self):
+        """Return the coordinates of the boat"""
+        return [self.xPos, self.yPos]

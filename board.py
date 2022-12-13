@@ -2,8 +2,7 @@ from multipledispatch import dispatch # For overloading functions
 from boat import boat as class_boat
 
 class board:
-    def __init__(self, server, maxBoats=[0, 0, 4, 3, 2, 1], width=10, height=10):
-        self.server = server # TODO: Consider moving this to File: game.py
+    def __init__(self, maxBoats=[0, 0, 4, 3, 2, 1], width=10, height=10):
         self.width = width
         self.height = height
         self.maxBoats = maxBoats # List of maximum amount of boats with the index as the length of the boat
@@ -28,13 +27,11 @@ class board:
 
         
         if self._board[y][x] == 0:
-            self._board[y][x] = -1
+            self._board[y][x] = 'M'
             return False
         elif isinstance(self._board[y][x], class_boat):
             self._board[y][x].hit(x, y)
             return True
-
-
 
     def placeBoat(self, boat, x, y):
         """Place a boat on the board"""
@@ -68,7 +65,7 @@ class board:
 
     def checkOutOfBounds(self, x, y):
         """Check if coordinates are out of bounds"""
-        if x < 0 or y < 0 or x > self.width or y > self.height:
+        if x <= 0 or y <= 0 or x > self.width or y > self.height:
             # Return True if coordinates are out of bounds
             return True
         return False
@@ -120,7 +117,19 @@ class board:
     @dispatch(int, int)
     def getState(self, x, y):
         """Return the state of coordinates in the board"""
-        return self._board[y][x]
+        state = self._board[y][x]
+        if isinstance(state, class_boat) and not state.isSunk:
+            boat = state # Better naming
+            # If an boat and isHit at pos, return 'X'
+            boatX, boatY = self.toIndex(boat.getCoordinates())
+            if boat.isVertical:
+                if boat.isHit[y-boatY]:
+                    return 'X'
+            else:
+                if boat.isHit[x-boatX]:
+                    return 'X'
+        # Else return state (0 / M / boat.ID)
+        return state
 
     @dispatch(int, int, int, int)
     def getState(self, x1, x2, y1, y2):
@@ -142,6 +151,12 @@ class board:
             adjustedCoordinates.append(0 if coordinate < 0 else coordinate if coordinate < self.width else self.width-1)
         return adjustedCoordinates
     
+    @dispatch(int, int)
     def toIndex(self, x, y):
         """Convert coordinates to array indexes"""
         return x - 1, y - 1
+
+    @dispatch(list)
+    def toIndex(self, coordinates):
+        """Convert coordinates to array indexes"""
+        return [x - 1 for x in coordinates]
