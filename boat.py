@@ -1,5 +1,5 @@
 class boat:
-    def __init__(self, board, length, isVertical, x, y):
+    def __init__(self, length, isVertical, x, y):
         """Create a boat object and place it on the board"""
         self.length = length
         self.ID = length # Numeric representation in the board array
@@ -7,8 +7,6 @@ class boat:
         self.isHit = [False for i in range(length)]
         self.xPos = x # Starting x position
         self.yPos = y # Starting y position
-
-        board.placeBoat(self, x, y)
 
     def __str__(self):
         """return ID of boat"""

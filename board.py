@@ -2,18 +2,18 @@ from multipledispatch import dispatch # For overloading functions
 from boat import boat as class_boat
 
 class board:
-    def __init__(self, maxBoats=[0, 0, 4, 3, 2, 1], width=10, height=10):
-        self.width = width
-        self.height = height
+    def __init__(self, maxBoats, size):
+        self.size = size
         self.maxBoats = maxBoats # List of maximum amount of boats with the index as the length of the boat
-        self._board = [[0 for a in range(width)] for b in range(height)] # 2D array to represent the board, fill with 0s
+        self._board = [[0 for a in range(size)] for b in range(size)] # 2D array to represent the board, fill with 0s
         self.boats = [[] for i in range(len(self.maxBoats))] # Empty list of boats on the board
+        
 
     def __str__(self):
         """Return a formatted string of the board"""
         formattedString = ""
-        for y in range(self.height):
-            for x in range(self.width):
+        for y in range(self.size):
+            for x in range(self.size):
                 formattedString += str(self.getState(x,y)) + " "
             formattedString += "\n"
         return formattedString
@@ -33,13 +33,12 @@ class board:
             self._board[y][x].hit(x, y)
             return True
 
-    def placeBoat(self, boat, x, y):
+    def placeBoat(self, boat):
         """Place a boat on the board"""
         # Check if the maximum amount of boats are on the board
         if self.checkMaxAmount(boat):
             raise ValueError("Maximum amount of boats with the length of " + str(boat.getSize()) + " are on the board")
 
-        # TODO: Check if server allows placement of this type of boat (In file: server.py)
         
         # Check if initial coordinates or maximum coordinates are out of bounds, differ between vertical and horizontal
         if self.checkOutOfBounds(x, y) or self.checkOutOfBounds(x, y + boat.getSize()) if boat.isVertical else self.checkOutOfBounds(x + boat.getSize(), y):
@@ -49,9 +48,7 @@ class board:
         if self.checkCollision(boat, x, y):
             raise ValueError("Coordinates are occupied")
 
-        # TODO: Check if server allows placement of this boat (In file: server.py)
-
-        x, y = self.toIndex(x, y) # Convert coordinates to array indexes
+        x, y = self.toIndex(boat.getCoordinates())
 
         self.boats[boat.getSize()].append(boat) # Add boat to list of same length boats in list of boats
 
@@ -65,7 +62,7 @@ class board:
 
     def checkOutOfBounds(self, x, y):
         """Check if coordinates are out of bounds"""
-        if x <= 0 or y <= 0 or x > self.width or y > self.height:
+        if x <= 0 or y <= 0 or x > self.size or y > self.size:
             # Return True if coordinates are out of bounds
             return True
         return False
@@ -148,7 +145,7 @@ class board:
         adjustedCoordinates = []
         for coordinate in coordinates:
             # If coordinate is less than 0, set it to 0 else check if it is greater than the max width, if so set to index of max width
-            adjustedCoordinates.append(0 if coordinate < 0 else coordinate if coordinate < self.width else self.width-1)
+            adjustedCoordinates.append(0 if coordinate < 0 else coordinate if coordinate < self.size else self.size-1)
         return adjustedCoordinates
     
     @dispatch(int, int)
