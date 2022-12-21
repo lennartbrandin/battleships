@@ -23,7 +23,7 @@ class board:
         if self.checkOutOfBounds(x, y):
             raise ValueError("Coordinates are out of bounds")
         # TODO: Check if server allows shooting at this coordinate (In file: server.py)
-        x, y = self.toIndex(x, y)
+        x, y = board.toIndex(x, y)
 
         
         if self._board[y][x] == 0:
@@ -35,20 +35,22 @@ class board:
 
     def placeBoat(self, boat):
         """Place a boat on the board"""
+        # Get boat indexes from coordinates
+        x, y = boat.getCoordinates()
+
         # Check if the maximum amount of boats are on the board
         if self.checkMaxAmount(boat):
             raise ValueError("Maximum amount of boats with the length of " + str(boat.getSize()) + " are on the board")
 
-        
         # Check if initial coordinates or maximum coordinates are out of bounds, differ between vertical and horizontal
         if self.checkOutOfBounds(x, y) or self.checkOutOfBounds(x, y + boat.getSize()) if boat.isVertical else self.checkOutOfBounds(x + boat.getSize(), y):
             raise ValueError("Coordinates are out of bounds")
 
         # Check if surrounding coordinates are not boat
-        if self.checkCollision(boat, x, y):
+        if self.checkCollision(boat):
             raise ValueError("Coordinates are occupied")
-
-        x, y = self.toIndex(boat.getCoordinates())
+        
+        x, y = board.toIndex(x, y)
 
         self.boats[boat.getSize()].append(boat) # Add boat to list of same length boats in list of boats
 
@@ -67,11 +69,11 @@ class board:
             return True
         return False
 
-    def checkCollision(self, boat, x, y):
+    def checkCollision(self, boat):
         """Check if coordinates and the x or y coordinates that the boat will take up are empty.
         Check if the space around the boat is empty"""
         # Convert coordinates to array indexes
-        x, y = self.toIndex(x, y)
+        x, y = board.toIndex(*boat.getCoordinates())
 
         checkRange = []
         # Get the range of coordinates around the boat to check
@@ -110,7 +112,22 @@ class board:
             return True
         return False
 
-            
+    # def occupation(self):
+    #     """Return the board occupation"""
+    #     isOccupied = self.getBoard() # Copy the board
+    #     for y in range(isOccupied.size):
+    #         for x in range(isOccupied.size):
+    #             state = self.getBoard().getState(x, y)
+    #             if state == isinstance(state, class_boat):
+    #                 x1, y1 = x-1, y-1
+    #                 if state.isVertical:
+    #                     x2, y2 = x+1, y+state.length
+    #                 else:
+    #                     x2, y2 = x+state.length, y+1
+    #                 # Set range around boat to true
+    #                 isOccupied.setState(x1, x2, y1, y2, True)
+    #     return isOccupied
+
     @dispatch(int, int)
     def getState(self, x, y):
         """Return the state of coordinates in the board"""
@@ -118,7 +135,7 @@ class board:
         if isinstance(state, class_boat) and not state.isSunk:
             boat = state # Better naming
             # If an boat and isHit at pos, return 'X'
-            boatX, boatY = self.toIndex(boat.getCoordinates())
+            boatX, boatY = board.toIndex(boat.getCoordinates())
             if boat.isVertical:
                 if boat.isHit[y-boatY]:
                     return 'X'
@@ -140,6 +157,22 @@ class board:
         # Extract the range of indexes from the board
         return [row[x1:x2] for row in self._board[y1:y2]]
 
+    # @dispatch(int, int)
+    # def setState(self, x, y, state):
+    #     """Set the state of coordinates in the board"""
+    #     self._board[y][x] = state
+
+    # @dispatch(int, int, int, int)
+    # def setState(self, x1, x2, y1, y2, state):
+    #     """Set state of coordinate range in the board"""
+    #     # Adjust coordinates if out of bounds
+    #     x1, x2, y1, y2 = self.adjustIndex(x1, x2, y1, y2)
+
+    #     # Set the range of indexes from the board
+    #     for y in range(y1, y2):
+    #         for x in range(x1, x2):
+    #             self._board[y][x] = state
+
     def adjustIndex(self, *coordinates):
         """Adjust coordinates if out of bounds"""
         adjustedCoordinates = []
@@ -147,13 +180,27 @@ class board:
             # If coordinate is less than 0, set it to 0 else check if it is greater than the max width, if so set to index of max width
             adjustedCoordinates.append(0 if coordinate < 0 else coordinate if coordinate < self.size else self.size-1)
         return adjustedCoordinates
-    
+
+    @staticmethod 
     @dispatch(int, int)
-    def toIndex(self, x, y):
+    def toIndex(x, y):
         """Convert coordinates to array indexes"""
         return x - 1, y - 1
 
+    @staticmethod
     @dispatch(list)
-    def toIndex(self, coordinates):
+    def toIndex(coordinates):
         """Convert coordinates to array indexes"""
         return [x - 1 for x in coordinates]
+    
+    @staticmethod
+    @dispatch(int, int)
+    def toCoordinates(x, y):
+        """Convert array indexes to coordinates"""
+        return x + 1, y + 1
+
+    @staticmethod
+    @dispatch(list)
+    def toCoordinates(indexes):
+        """Convert array indexes to coordinates"""
+        return [x + 1 for x in indexes]

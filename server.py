@@ -1,7 +1,9 @@
 import websocket
 import rel
 import json
-from game import *
+from game import * # Be able to create game, player
+from board import board as class_board # Use toIndex() function
+
 class server:
     """Establish a websocket communication with server and create a game"""
     def __init__(self, address, port, room, name):
@@ -30,6 +32,7 @@ class server:
     def send(self, message):
         """Send message to server"""
         self.ws.send(json.dumps(message))
+        print(f"Sent: {json.dumps(message)}")
 
     def action(self, type, data):
         """Send action to server"""
@@ -41,15 +44,15 @@ class server:
     def sendPlaceBoat(self, boat):
         """Send place boat action to server"""
         direction = "VERTICAL" if boat.isVertical else "HORIZONTAL"
+        x, y = class_board.toIndex(boat.xPos, boat.yPos) # Convert to index
         self.action(
             type = "PLACE_SHIP",
-            data = json.dumps({
-                "x": boat.xPos,
-                "y": boat.yPos,
+            data = {
+                "x": x,
+                "y": y,
                 "length": boat.length,
                 "direction": direction
-            }))
-        # TODO: Implement status return: true if successful
+            })
         
 
     def on_open(self, ws):
@@ -68,7 +71,7 @@ class server:
                         # TODO: GUI display status
                         pass
                     case "SETUP":
-                        self.game.setup()
+                        self.game.setup() if False else self.game.setupAuto()
             case "PLAYER_CHANGED":
                 pass
             case "SHOT_FIRED":
@@ -89,9 +92,15 @@ class server:
         return self.player
 
 if __name__=="__main__":
-    Server = server(
-        address="localhost", # "battleships.lennardwalter.com",
-        port=8080, # 443,
-        room="default",
-        name="Player1"
+    # Server = server(
+    #     address="localhost", # "battleships.lennardwalter.com",
+    #     port=8080, # 443,
+    #     room="default",
+    #     name="Player2"
+    # )
+    game = game(
+        None,
+        player("Player1"),
+        player("Player2")
     )
+    game.setupAuto()

@@ -1,7 +1,7 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QGridLayout, QSpacerItem, QSizePolicy
 
-class Field(QWidget, server):
+class Field(QWidget):
     def __init__(self, rows, columns):
         super(QWidget, self).__init__()
         self.rows = rows

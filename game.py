@@ -1,5 +1,6 @@
 from board import board as class_board
 from boat import boat as class_boat
+import random
 
 class player:
     """Create a player"""
@@ -36,21 +37,66 @@ class game:
             amountOfBoats = [len(amount) for amount in existingBoats] # List of boat amounts differed by length of boat
             remainingBoats = [maxBoats[i] - amountOfBoats[i] for i in range(len(maxBoats))]
 
+
             # Place every remaining boat
             for amount in remainingBoats:
+                # TODO: Handle case if boat is not placed.
                 for i in range(amount):
-                    print(f"Place boat with length {remainingBoats.index(amount)}, {amount} remaining")
+                    print(f"Place boat with length {remainingBoats.index(amount)}, {amount - i} remaining")
                     # Create boat
                     boat = class_boat(
                         length=remainingBoats.index(amount),
-                        x=input("X: "),
-                        y=input("Y: "),
+                        x=int(input("X: ")),
+                        y=int(input("Y: ")),
                         isVertical=input("Vertical? (y/n): ").lower == "y"
                     )
-                    # Only place boat on board if server accepted it
-                    # This will prefer server side checks over client side checks
                     if not self.server == None:
-                        if self.server.sendPlaceBoat(boat):
-                            player.getBoard().placeBoat(boat)
+                        player.getBoard().placeBoat(boat) # Check client first
+                        self.server.sendPlaceBoat(boat)
+                        print(player.getBoard()) # Only one player for online game
                     else:
                         player.getBoard().placeBoat(boat)
+                        print(player.getBoard())
+
+    def setupAuto(self):
+        """Automatically setup the game"""
+        # NOTE: May get stuck with placing boats when placed inefficient
+        for player in self.players:
+            # NOTE: This could be replaced by:
+            # remainingBoats = player.getBoard.maxBoats
+            # Since the board is empty and thus existing boats 0.
+            # This would allow to place boats even if there are already boats residing on the board.
+            board = player.getBoard()
+            existingBoats = board.boats 
+            maxBoats = board.maxBoats
+            amountOfBoats = [len(amount) for amount in existingBoats] 
+            remainingBoats = [maxBoats[i] - amountOfBoats[i] for i in range(len(maxBoats))]
+
+            # Step through every remaining boat
+            for amount in reversed(remainingBoats):
+                for i in range(amount):
+                    # While not all boats of length are placed, iterate the board and check for collision
+                    y = 0
+                    boat_placed = False
+                    while y < board.size and not boat_placed:
+                        x = 0 # Reset x
+                        while x < board.size and not boat_placed:
+                            xPos, yPos = class_board.toCoordinates(x, y) # Convert index to coordinates
+                            boat = class_boat(
+                                length=remainingBoats.index(amount),
+                                x=xPos,
+                                y=yPos,
+                                isVertical=random.choice([True, False])
+                            )
+                            try:
+                                if not self.server == None:
+                                    player.getBoard().placeBoat(boat) # Check client first
+                                    self.server.sendPlaceBoat(boat)
+                                    print(player.getBoard()) 
+                                else:
+                                    player.getBoard().placeBoat(boat)
+                                    print(player.getBoard())
+                                boat_placed = True
+                            except ValueError:
+                                x += 1
+                        y += 1
