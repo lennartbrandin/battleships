@@ -1,12 +1,12 @@
 class boat:
-    def __init__(self, length, isVertical, x, y):
+    def __init__(self, length, isVertical, x, y, isDestroyed=False):
         """Create a boat object and place it on the board"""
         self.length = length
         self.ID = length # Numeric representation in the board array
         self.isVertical = isVertical # True: array from top to bottom, False: array from left to right.
-        self.isHit = [False for i in range(length)]
-        self.xPos = x # Starting x position
-        self.yPos = y # Starting y position
+        self.isHit = [True if isDestroyed else False for i in range(length)] # Integrity of boat, mark as destroyed if isDestroyed is True
+        self.x= x # Starting x position
+        self.y= y # Starting y position
 
     def __str__(self):
         """return ID of boat"""
@@ -14,12 +14,12 @@ class boat:
 
 
     def hit(self, x, y):
-        """Hit a coordinate on the boat"""
-        boatX, boatY = self.xPos-1, self.yPos-1 # Convert coordinates to array indexes
+        """Hit a boat at given index"""
+        # Set isHit array at given index to True
         if self.isVertical:
-            self.isHit[y - boatY] = True
+            self.isHit[y - self.y] = True
         else:
-            self.isHit[x - boatX] = True
+            self.isHit[x - self.x] = True
         # Returns true is boat is sunk
         return self.isSunk()
 
@@ -40,6 +40,6 @@ class boat:
         """Return the integrity of the boat"""
         return self.isHit
 
-    def getCoordinates(self):
-        """Return the coordinates of the boat"""
-        return [self.xPos, self.yPos]
+    def getIndexes(self):
+        """Return the indexes of the boat"""
+        return [self.x, self.y]

@@ -12,7 +12,8 @@ class server:
         self.port = port
         self.room = room
         self.player = player(name)
-        self.game = game(self, player)
+        self.enemy = player("Enemy"); self.enemy.board = class_board(self.player.board.maxBoats, self.player.board.size, "?")
+        self.game = game(self, player, self.enemy)
         self.start()
 
     def start(self):
@@ -44,7 +45,7 @@ class server:
     def sendPlaceBoat(self, boat):
         """Send place boat action to server"""
         direction = "VERTICAL" if boat.isVertical else "HORIZONTAL"
-        x, y = class_board.toIndex(boat.xPos, boat.yPos) # Convert to index
+        x, y = boat.getIndexes()
         self.action(
             type = "PLACE_SHIP",
             data = {
@@ -53,6 +54,16 @@ class server:
                 "length": boat.length,
                 "direction": direction
             })
+
+    def sendPlaceShot(self, x, y):
+        """Send FIRE_SHOT action to the server"""
+        self.action(
+            type = "FIRE_SHOT",
+            data = {
+                "x": x,
+                "y": y
+            }
+        )
         
 
     def on_open(self, ws):
@@ -71,11 +82,47 @@ class server:
                         # TODO: GUI display status
                         pass
                     case "SETUP":
+                        self.game.players[0].enemy.setName(data["extra"]["enemy"])
                         self.game.setup() if False else self.game.setupAuto()
+                    case "IN_PROGRESS":
+                        pass
+                    case "GAME_OVER":
+                        print("Game over")
             case "PLAYER_CHANGED":
-                pass
+                if data["name"] == self.player.name:
+                    self.game.playerTurn()
+                else: 
+                    pass
             case "SHOT_FIRED":
-                pass
+                isSelf = data["player"] == self.player.name # Is the shot fired by the instance's player?
+                x, y = data["x"], data["y"]
+                board = self.player.enemy.board if data["player"] == self.player.name else self.player.board
+                match data["result"]:
+                    # Determine board on which to place shot
+                    case "HIT":
+                        state = "X"
+                    case "MISS":
+                        state = "M"
+                    case "SUNK":
+                        state = "S"
+                        if isSelf:
+                            # If activePlayer is instance's player, place sunk boat on enemy's empty board
+                            board.placeBoat(
+                                class_boat(
+                                    length = len(data["shipCoordinates"]),
+                                    isVertical = True if data["shipCoordinates"][0][0] == data["shipCoordinates"][1][0] else False, # Boat is vertical if x1 == x2
+                                    x = data["shipCoordinates"][0][0],
+                                    y = data["shipCoordinates"][0][1],
+                                    isDestroyed=True
+                                )
+                            )
+                        else:
+                            # If instance's boat was sunk, just place shoot normally, sinking it is handled automatically
+                            state = "X"
+                board.placeShot(x, y, state)
+                if isSelf and data["result"] != "MISS":
+                    self.game.playerTurn()
+
             case "SHIP_PLACED":
                 pass
             case "ERROR":
@@ -91,16 +138,19 @@ class server:
     def getPlayer(self):
         return self.player
 
+    def getEnemy(self):
+        return self.enemy
+
 if __name__=="__main__":
-    # Server = server(
-    #     address="localhost", # "battleships.lennardwalter.com",
-    #     port=8080, # 443,
-    #     room="default",
-    #     name="Player2"
-    # )
-    game = game(
-        None,
-        player("Player1"),
-        player("Player2")
+    Server = server(
+        address="localhost", #"battleships.lennardwalter.com",
+        port=8080,
+        room="1",
+        name=input("Enter your name: ")
     )
-    game.setupAuto()
+    # game = game(
+    #     None,
+    #     player("Player1"),
+    #     player("Player2")
+    # )
+    # game.setupAuto()
