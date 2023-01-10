@@ -2,7 +2,7 @@ from multipledispatch import dispatch # For overloading functions
 from boat import boat as class_boat
 
 class board:
-    def __init__(self, maxBoats, size, filler=0):
+    def __init__(self, maxBoats, size, filler):
         self.size = size
         self.maxBoats = maxBoats # List of maximum amount of boats with the index as the length of the boat
         self._board = [[filler for a in range(size)] for b in range(size)] # 2D array to represent the board, fill with 0 or filler
@@ -21,6 +21,8 @@ class board:
         """Shoot a index on the board"""
         if self.checkOutOfBounds(x, y):
             raise ValueError("Coordinates are out of bounds")
+
+        # TODO: Check if already hit
 
         # Check if the index is a boat, if so, hit the boat
         # If not, check if Override exists, if so, place the override value, else place a miss

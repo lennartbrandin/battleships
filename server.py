@@ -1,19 +1,22 @@
 import websocket
 import rel
 import json
-from game import * # Be able to create game, player
+from game import game as class_game
+from game import player as class_player
 from board import board as class_board # Use toIndex() function
+from boat import boat as class_boat
+from PyQt6.QtCore import QObject, QThread
 
-class server:
+class server(QObject):
     """Establish a websocket communication with server and create a game"""
-    def __init__(self, address, port, room, name):
+    def __init__(self, address, port, room, player):
         """Create Websocket"""
         self.address = address
         self.port = port
         self.room = room
-        self.player = player(name)
-        self.enemy = player("Enemy"); self.enemy.board = class_board(self.player.board.maxBoats, self.player.board.size, "?")
-        self.game = game(self, player, self.enemy)
+        self.player = player
+        self.enemy = class_player("Enemy", self.player.board.maxBoats, self.player.board.size, "?")
+        self.game = class_game(self, player, self.enemy)
         self.start()
 
     def start(self):
@@ -126,7 +129,7 @@ class server:
             case "SHIP_PLACED":
                 pass
             case "ERROR":
-                raise Exception(data["code"])
+                self.game.playerTurn() # Retry turn
 
     def on_error(self, ws, error):
         print(error)
@@ -143,10 +146,10 @@ class server:
 
 if __name__=="__main__":
     Server = server(
-        address="localhost", #"battleships.lennardwalter.com",
+        address="localhost",
         port=8080,
         room="1",
-        name=input("Enter your name: ")
+        player=class_player(input("Enter your name: "), [0, 0, 4, 3, 2, 1], 10, "0")
     )
     # game = game(
     #     None,

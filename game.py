@@ -4,13 +4,10 @@ import random
 
 class player:
     """Create a player"""
-    def __init__(self, name):
+    def __init__(self, name, maxBoats, size, filler):
         """Create a board for the player"""
         self.name = name
-        self.board = class_board(
-            maxBoats=[0, 0, 4, 3, 2, 1], # List of maximum boats per length (0, 1, 2, 3, 4, 5)
-            size=10 # Size of the board
-        )
+        self.board = class_board(maxBoats, size, filler)
 
     def __str__(self):
         """Return a formatted string of own and enemy board besides each other"""
@@ -27,6 +24,10 @@ class player:
                     formattedString += str(self.enemy.getBoard().getState(x-self.enemy.getBoard().size-1,y)) + " "
             formattedString += "\n"
         return formattedString
+
+    def getEnemyState(self, x, y):
+        """Return the state of the enemy at the given coordinate"""
+        return self.enemy.getBoard().getState(x, y)
 
     def getBoard(self):
         """Return the board of the player"""
@@ -57,6 +58,7 @@ class game:
 
     def setup(self):
         """Setup the game"""
+        self.nextPhase()
         # Place boat as long as the sum of existing boats is smaller than the sum of maximum boats
         for player in self.players:
             existingBoats = player.getBoard().boats # List of list of boat objects differed by length of boat
@@ -173,3 +175,14 @@ class game:
         for player in self.players:
             if player.name == name:
                 return player
+    
+    def nextPhase(self):
+        """Set the phase of the game to the next phase"""
+        self.phase = self.phases[self.phases.index(self.phase) + 1]
+
+    def interact(self, x, y):
+        """Use coordinates to interact with the game"""
+        if self.phase == "SETUP":
+            return self.placeBoat(x, y)
+        elif self.phase == "play":
+            self.shoot(x, y)
