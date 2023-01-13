@@ -5,9 +5,22 @@ import random
 class player:
     """Create a player"""
     def __init__(self, name, maxBoats, size, filler):
-        """Create a board for the player"""
+        """Create a player and a board with it"""
         self.name = name
         self.board = class_board(maxBoats, size, filler)
+        # Get state of self, enemy in File: ai.py 
+        # self.player.getBoard().getState(x, y) # Returns ('0' / 'M' / 'X' / boat.ID') NOTE: '0' can be other chars
+        # Boat ID is the only relevant aspect for the Setup phase, the function is not needed afterwards
+
+        # self.player.enemy.getBoard().getState(x, y) # Return ('?' / "M' / 'X' / 'S') NOTE: '?' can be other chars
+
+        # Place boat in File: ai.py
+        # from boat import boat as class_boat
+        # self.player.getBoard().placeBoat(class_boat(length, isVertical, x, y)
+
+        # Shoot at enemy in File: ai.py
+        # self.player.enemy.getBoard().shoot(x, y)
+
 
     def __str__(self):
         """Return a formatted string of own and enemy board besides each other"""
@@ -24,10 +37,6 @@ class player:
                     formattedString += str(self.enemy.getBoard().getState(x-self.enemy.getBoard().size-1,y)) + " "
             formattedString += "\n"
         return formattedString
-
-    def getEnemyState(self, x, y):
-        """Return the state of the enemy at the given coordinate"""
-        return self.enemy.getBoard().getState(x, y)
 
     def getBoard(self):
         """Return the board of the player"""

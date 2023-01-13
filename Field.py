@@ -1,9 +1,8 @@
 import sys
 from PyQt6.QtWidgets import *
-from PyQt6.QtCore import QObject, QThread
 from game import player as class_player
-from server import server as class_server
-from PyQt6.QtCore import QThreadPool
+from PyQt6.QtCore import *
+from websocketClient import websocketClient
 
 
 class boardWidget(QWidget):
@@ -44,28 +43,27 @@ class boardWidget(QWidget):
 class mainWindow(QMainWindow, QThread):
     def __init__(self):
         super().__init__()
-        self.thread_manager = QThreadPool()
+        self.threadPool = QThreadPool()
         # Customize the window
         self.setWindowTitle("Battleships")
         self.resize(400, 400)
 
-        # Create a selector for the game type
-        self.selectGameType= QComboBox()
-        self.selectGameType.addItems(["online", "offline"])
-        # Create a button which will create a new window
+        selectGameType= QComboBox()
+        selectGameType.addItems(["online", "offline"])
+        # Make class attribute because we need to change its text according to the game type
         self.startGameButton = QPushButton(f"Start online game") # Online is default
         # On selector change, update the button text and the detail prompts
-        self.selectGameType.currentTextChanged.connect(lambda: self.updateDetails(self.selectGameType.currentText()))
+        selectGameType.currentTextChanged.connect(lambda: self.updateDetails(selectGameType.currentText()))
 
         # Connect the button to window creation
-        self.startGameButton.clicked.connect(lambda: self.newGrid(self.selectGameType.currentText()))
+        self.startGameButton.clicked.connect(lambda: self.newGrid(selectGameType.currentText()))
 
         # Create a vertical layout with the gameDetails and the gameType specific details
         self.layout = QVBoxLayout()
 
-        # Create a vertical layout with the selector and startGameButton
+        # Create a vertical layout with the selector and self.startGameButton
         game = QHBoxLayout()
-        game.addWidget(self.selectGameType)
+        game.addWidget(selectGameType)
         game.addWidget(self.startGameButton)
         game.setSpacing(0)
         
@@ -80,7 +78,6 @@ class mainWindow(QMainWindow, QThread):
     def updateDetails(self, gameType):
         """Replace onlineDetails with offlineDetails if offline is selected and vice versa"""
         self.startGameButton.setText(f"Start {gameType} game")
-        # self.layout.removeItem(self.onlineDetails() if gameType == "offline" else self.offlineDetails())
         item = self.layout.itemAt(1)
         if gameType == "offline":
             self.deleteItemsOfLayout(item.layout())
@@ -90,6 +87,10 @@ class mainWindow(QMainWindow, QThread):
             self.deleteItemsOfLayout(item.layout())
             self.layout.removeItem(item)
             self.layout.addLayout(self.onlineDetails())
+
+    def updateConnectionDetails(self, ip, port, room, playerName):
+        """Update the connection details"""
+        return f"wss://{ip.text()}:{port.text()}/?{room.text()}&{playerName.text()}"
 
     def deleteItemsOfLayout(self, layout):
         """Delete all items of a layout"""
@@ -107,28 +108,31 @@ class mainWindow(QMainWindow, QThread):
 
     def onlineDetails(self):
         connectionDetails = QVBoxLayout()
-        # Prompt for infos and give default values
+        # Prompt for address, port
         serverDetails = QHBoxLayout()
-        serverDetails.addWidget(QLabel("Server:")); self.ip = QLineEdit(); self.ip.setText("ws://localhost"); serverDetails.addWidget(self.ip)
-        serverDetails.addWidget(QLabel(":")); self.port = QLineEdit(); self.port.setText("8080"); serverDetails.addWidget(self.port)
+        serverDetails.addWidget(QLabel("Server:")); ip = QLineEdit(); ip.setText("battleships.lennardwalter.com"); serverDetails.addWidget(ip)
+        serverDetails.addWidget(QLabel(":")); port = QLineEdit(); port.setText("443"); serverDetails.addWidget(port)
         serverDetails.setSpacing(0)
 
+        # Prompt for room, playerName
         roomDetails = QHBoxLayout()
         playerDetails = QHBoxLayout()
-        roomDetails.addWidget(QLabel("Room:")); self.room = QLineEdit(); self.room.setText("Room"); roomDetails.addWidget(self.room)
-        playerDetails.addWidget(QLabel("Player:")); self.playerName = QLineEdit(); self.playerName.setText("Player"); playerDetails.addWidget(self.playerName)
+        roomDetails.addWidget(QLabel("Room:")); room = QLineEdit(); room.setText("Room"); roomDetails.addWidget(room)
+        playerDetails.addWidget(QLabel("Player:")); playerName = QLineEdit(); playerName.setText("Player"); playerDetails.addWidget(playerName)
 
-        # Create a connection string from the input
+        # Assemble connectionString from input
         connectionDetailsString = QHBoxLayout()
         connectionLabel = QLabel("Connection: ")
         connectionString = QLineEdit()
-        updateConnectionString = lambda: connectionString.setText(f"{self.ip.text()}:{self.port.text()}/?{self.room.text()}&{self.playerName.text()}")
+        updateConnectionString = lambda: connectionString.setText(self.updateConnectionDetails(ip, port, room, playerName))
         updateConnectionString()
         connectionString.setReadOnly(True)
         connectionDetailsString.addWidget(connectionLabel)
         connectionDetailsString.addWidget(connectionString)
+        # Update the game start button to pass the correct keyword arguments to the newGrid() method
+        self.startGameButton.clicked.connect(lambda: self.newGrid("online", ip=connectionString.text(), room=room.text(), playerName=playerName.text()))
 
-        # QLINEEDIT update connectionString on textChanged as eye candy 
+        # Update connectionString as info is edited
         for layout in [serverDetails, roomDetails, playerDetails]:
             for i in range(layout.count()):
                 item = layout.itemAt(i).widget()
@@ -148,49 +152,64 @@ class mainWindow(QMainWindow, QThread):
         sizeDetails.addWidget(QLabel("Size:")); self.size = QLineEdit(); self.size.setText("10"); sizeDetails.addWidget(self.size)
         sizeDetails.setSpacing(0)
 
-        maxBoatsDetails = QHBoxLayout()
-        maxBoatsDetails.addWidget(QLabel("Max boats:"))
+        self.maxBoatsDetails = QHBoxLayout()
+        self.maxBoatsDetails.addWidget(QLabel("Max boats:"))
         # TODO: Generate maxBoats depending on size
         maxBoats = [0, 0, 4, 3, 2, 1]
         for amount in maxBoats:
-            boatAmount = QLineEdit(); boatAmount.setText(str(amount)); maxBoatsDetails.addWidget(boatAmount)
+            boatAmount = QLineEdit(); boatAmount.setText(str(amount)); self.maxBoatsDetails.addWidget(boatAmount)
 
         # Allow selection if is player or AI
-        playerDetails = QHBoxLayout()
-        self.player1Type = QComboBox(); self.player1Type.addItems(["Player", "AI"]); playerDetails.addWidget(self.player1Type)
-        self.player1Name = QLineEdit(); self.player1Name.setText("Player1"); playerDetails.addWidget(self.player1Name)
-        self.player1Type.currentTextChanged.connect(lambda text: self.player1Name.setText(f"{text}1"))
+        self.playerDetails = QHBoxLayout()
+        player1Type = QComboBox(); player1Type.addItems(["Player", "AI"]); self.playerDetails.addWidget(player1Type)
+        player1Name = QLineEdit(); player1Name.setText("Player1"); self.playerDetails.addWidget(player1Name)
+        player1Type.currentTextChanged.connect(lambda text: player1Name.setText(f"{text}1"))
 
-        self.player2Type = QComboBox(); self.player2Type.addItems(["Player", "AI"]); playerDetails.addWidget(self.player2Type)
-        self.player2Name = QLineEdit(); self.player2Name.setText("Player2"); playerDetails.addWidget(self.player2Name)
-        self.player2Type.currentTextChanged.connect(lambda text: self.player2Name.setText(f"{text}2"))
-        playerDetails.setSpacing(2)
+        player2Type = QComboBox(); player2Type.addItems(["Player", "AI"]); self.playerDetails.addWidget(player2Type)
+        player2Name = QLineEdit(); player2Name.setText("Player2"); self.playerDetails.addWidget(player2Name)
+        player2Type.currentTextChanged.connect(lambda text: player2Name.setText(f"{text}2"))
+        self.playerDetails.setSpacing(2)
 
-        localDetails.addLayout(sizeDetails); localDetails.addLayout(maxBoatsDetails); localDetails.addLayout(playerDetails)
+        localDetails.addLayout(sizeDetails); localDetails.addLayout(self.maxBoatsDetails); localDetails.addLayout(self.playerDetails)
         localDetails.setSpacing(10)
         return localDetails
 
-    def newGrid(self, gameType):
+    def newGrid(self, gameType, **kw):
         """Create a new window with a grid, or two grids if offline"""
-        v = lambda var: var.text() # Shortcut for getting the text of a QLineEdit
+        kw.update((key, value.text()) for key, value in kw.items()) # Extract text from QLineEdit
         if gameType == "online":
-            # Use predefined values for the server
-            self.windowBoard = boardWidget(
-                player=class_player(v(self.playerName), 
-                    maxBoats=[0, 0, 4, 3, 2, 1],
-                    size=10,
-                    filler="0"
-                )
-            )
-            # self.server = class_server(
-            #     address=v(self.ip),
-            #     port=v(self.port),
-            #     room=v(self.room),
-            #     player=self.windowBoard.player
-            # )
+            # We need to pass the values to the websocket and the widget, because the widget should even work without websocket
+            player = class_player(kw["playerName"], maxBoats=[0, 0, 4, 3, 2, 1], size=10, filler='0')
+            self.windowBoard = boardWidget(player)
+            self.createWebsocketWorker(kw["ip"], kw["port"], kw["room"], player)
 
         elif gameType == "offline":
-            pass
+            # Retrieve all maxBoats from the layout's QLineEdits
+            maxBoats = []
+            for i in range(kw["maxBoatsDetails"].count()):
+                item = kw["maxBoatsDetails"].itemAt(i).widget()
+                if isinstance(item, QLineEdit):
+                    maxBoats.append(int(item.text()))
+            # Iterate by elements of all players
+            playerDetails = {}
+            for i in range(self.playerDetails.count()):
+                player = self.playerDetails.itemAt(i).widget()
+                for j in player:
+                    item = player.itemAt(j).widget()
+                    if isinstance(item, QComboBox):
+                        pass
+                    if isinstance(item, QLineEdit):
+                        pass
+
+
+    def createWebsocketWorker(self, *args):
+        """Create the websocketWorker to communicate with the server"""
+        self.websocketWorker = websocketClient(*args)
+        self.websocketWorker.signals.websocketMessage.connect(lambda message: print(message))
+        self.websocketWorker.signals.websocketOpened.connect(lambda: print("Websocket open"))
+        self.websocketWorker.signals.GAME_PHASE_CHANGED.connect(lambda phase: print(phase))
+        self.websocketWorker.signals.websocketError.connect(lambda error: print(error))
+        self.threadPool.start(self.websocketWorker)
 
 
 if __name__ == "__main__":

@@ -3,35 +3,33 @@ import rel
 import json
 from game import game as class_game
 from game import player as class_player
-from board import board as class_board # Use toIndex() function
 from boat import boat as class_boat
-from PyQt6.QtCore import QObject, QThread
+from PyQt6.QtCore import *
 
-class server(QObject):
-    """Establish a websocket communication with server and create a game"""
+class websocketClient(QRunnable):
+    """Establish websocket connection as a worker of mainWindow"""
     def __init__(self, address, port, room, player):
         """Create Websocket"""
+        super().__init__()
+        self.signals = websocketClientSignals() # Communicate game events with the mainWindow
         self.address = address
         self.port = port
         self.room = room
         self.player = player
         self.enemy = class_player("Enemy", self.player.board.maxBoats, self.player.board.size, "?")
         self.game = class_game(self, player, self.enemy)
-        self.start()
 
-    def start(self):
+    @pyqtSlot()
+    def run(self):
         prefix = "ws" if self.address == "localhost" else "wss" # Use unsecure if hosting local
         self.ws = websocket.WebSocketApp(
             f"{prefix}://{self.address}:{self.port}/?room={self.room}&name={self.player.name}",
-            on_open=self.on_open,
-            on_message=self.on_message,
+            on_open=self.signals.websocketOpened.emit(),
             on_error=self.on_error,
-            on_close=self.on_close
+            on_message=lambda ws, message: self.signals.websocketMessage.emit(message), #self.on_message,
+            on_close=self.signals.websocketClosed.emit()
         )   
-        # In case of connection loss, reconnect
-        self.ws.run_forever(dispatcher=rel, reconnect=5)
-        rel.signal(2, rel.abort)
-        rel.dispatch()
+        self.ws.run_forever()
 
     def send(self, message):
         """Send message to server"""
@@ -70,15 +68,18 @@ class server(QObject):
         
 
     def on_open(self, ws):
+        self.signals.websocketOpened.emit()
         print("Opened connection")
 
     def on_message(self, ws, message):
+        self.signals.websocketMessage.emit(message)
         print(message)
         dict_message = json.loads(message)
         type = dict_message["type"]
         data = dict_message["data"]
         match type:
             case "GAME_PHASE_CHANGED":
+                self.signals.GAME_PHASE_CHANGED.emit(data["phase"]) # Report event to mainWindow to update GUI
                 match data["phase"]:
                     case "WAITING_FOR_PLAYERS":
                         print("Waiting for players")
@@ -132,11 +133,12 @@ class server(QObject):
                 self.game.playerTurn() # Retry turn
 
     def on_error(self, ws, error):
+        self.signals.websocketError.emit(str(error))
         print(error)
 
     def on_close(self, ws, close_status_code, close_msg):
-        print("Closed connection")
-        print(f"Status code: {close_status_code}, Message: {close_msg}")
+        self.signals.websocketClosed.emit()
+        print(f"Websocket closed. Status code: {close_status_code}, Message: {close_msg}")
 
     def getPlayer(self):
         return self.player
@@ -144,16 +146,19 @@ class server(QObject):
     def getEnemy(self):
         return self.enemy
 
+class websocketClientSignals(QObject):
+    """Signals to communicate with the mainWindow"""
+    websocketOpened = pyqtSignal()
+    GAME_PHASE_CHANGED = pyqtSignal(str) # Report Game phase
+    websocketMessage = pyqtSignal(str)
+    websocketError = pyqtSignal(str)
+    websocketClosed = pyqtSignal()
+
 if __name__=="__main__":
-    Server = server(
+    Server = websocketClient(
         address="localhost",
         port=8080,
         room="1",
-        player=class_player(input("Enter your name: "), [0, 0, 4, 3, 2, 1], 10, "0")
+        player=class_player(input("Enter your name: "), [0, 0, 4, 3, 2, 1], 10, '0')
     )
-    # game = game(
-    #     None,
-    #     player("Player1"),
-    #     player("Player2")
-    # )
-    # game.setupAuto()
+    Server.run()

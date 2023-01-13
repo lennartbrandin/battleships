@@ -135,6 +135,8 @@ class board:
             boat = state # Better naming
             # If an boat and isHit at pos, return 'X'
             boatX, boatY = boat.getIndexes()
+            if boat.isSunk():
+                return 'S'
             if boat.isVertical:
                 if boat.isHit[y-boatY]:
                     return 'X'
