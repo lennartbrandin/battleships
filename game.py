@@ -1,197 +1,87 @@
-from board import board as class_board
-from boat import boat as class_boat
-import random
+# Structural process of the game
+from board import board
+from player import player, enemy, ai
+from PyQt6.QtCore import QThread, QThreadPool
+from websocketClient import websocketClient
+from ui.mainWindow import mainWindow
+from ui.grid import grid
 
-class player:
-    """Create a player"""
-    def __init__(self, name, maxBoats, size, filler):
-        """Create a player and a board with it"""
-        self.name = name
-        self.board = class_board(maxBoats, size, filler)
-        # Get state of self, enemy in File: ai.py 
-        # self.player.getBoard().getState(x, y) # Returns ('0' / 'M' / 'X' / boat.ID') NOTE: '0' can be other chars
-        # Boat ID is the only relevant aspect for the Setup phase, the function is not needed afterwards
+class game(QThread):
+    """Structural process of the game"""
+    def __init__(self, disableUI=False):
+        super().__init__()
+        self.player=[]
+        # Default values will be used when starting online game
+        self.size=10
+        self.maxBoats=[0, 0, 4, 3, 2, 1]
 
-        # self.player.enemy.getBoard().getState(x, y) # Return ('?' / "M' / 'X' / 'S') NOTE: '?' can be other chars
-
-        # Place boat in File: ai.py
-        # from boat import boat as class_boat
-        # self.player.getBoard().placeBoat(class_boat(length, isVertical, x, y)
-
-        # Shoot at enemy in File: ai.py
-        # self.player.enemy.getBoard().shoot(x, y)
-
+        self.mainWindow=mainWindow(self) if not disableUI else None
 
     def __str__(self):
-        """Return a formatted string of own and enemy board besides each other"""
-        formattedString = f"{self.name}'s board:"
-        formattedString += " " * (22-len(formattedString)) # Add spaces to align the notation to the boards
-        formattedString += f"{self.enemy.name}'s board:\n"
-        for y in range(self.board.size):
-            for x in range(self.board.size + 1 + self.enemy.getBoard().size): # +1 for the seperator
-                if x < self.board.size:
-                    formattedString += str(self.getBoard().getState(x,y)) + " "
-                elif self.board.size <= x < self.board.size + 1:
-                    formattedString += "| "
-                elif self.board.size < x:
-                    formattedString += str(self.enemy.getBoard().getState(x-self.enemy.getBoard().size-1,y)) + " "
-            formattedString += "\n"
+        """Return game and its players as formatted string"""
+        formattedString = f"{self.__class__.__name__}\n"
+        for player in self.player:
+            formattedString += f"{str(player)}\n"
         return formattedString
 
-    def getBoard(self):
-        """Return the board of the player"""
-        return self.board
 
-    def setEnemy(self, player):
-        """Set the enemy of the player"""
-        self.enemy = player
+    class boardBlueprint(board):
+        # This class will be used by the players
+        def __init__(self, game, filler):
+            """Extend the board class with game specific information"""
+            self.game=game
+            super().__init__(self.game.maxBoats, self.game.size, filler)
 
-    def setName(self, name):
-        """Set the name of the player"""
-        self.name = name
+    def startGame(self, gameDetails):
+        """Start a game"""
+        self.gameDetails=gameDetails
+        if self.gameDetails["gameType"] == "online":
+            # Create player, enemy's will be set up by the server
+            self.player.append(player(self, self.gameDetails["player"], '0'))
+            self.startWebsocketClient(self.gameDetails["server"], self.gameDetails["port"], self.gameDetails["room"], self.gameDetails["player"])
+        elif self.gameDetails["gameType"] == "offline":
+            for i, entry in enumerate(self.gameDetails["players"]):
+                obj = player(self, entry["name"], '0') if entry["type"] == "player" else ai(self, entry["name"])
+                obj.setEnemy(self.player[i-1]) # Set enemy to the previous player 
+                [obj.setEnemy(enemy(self, entry["name"])) for entry in self.gameDetails["players"]] # Create all enemies for the player
+                self.player.append(obj)
 
-class game:
-    def __init__(self, server, *players):
-        self.server = server
-        self.players = players if server == None else [server.getPlayer(), server.getEnemy()] # If playing online, copy the player names from the server
-        self.activePlayerID = 0
-        self.setEnemies()
-    
-    def __str__(self):
-        return "\n".join([str(player) for player in self.players])
 
-    def setEnemies(self):
-        """Set the enemy of a player to the previous player"""
-        for i, player in enumerate(self.players):
-            player.setEnemy(self.players[i-1])
+    def startWebsocketClient(self, host, port, room, name):
+        self.websocketClient=websocketClientThread(self, host, port, room, name)
+        self.server=self.websocketClient.webSocketClient
 
     def setup(self):
         """Setup the game"""
-        self.nextPhase()
-        # Place boat as long as the sum of existing boats is smaller than the sum of maximum boats
-        for player in self.players:
-            existingBoats = player.getBoard().boats # List of list of boat objects differed by length of boat
-            maxBoats = player.getBoard().maxBoats # List of maximum boats per length
-            amountOfBoats = [len(amount) for amount in existingBoats] # List of boat amounts differed by length of boat
-            remainingBoats = [maxBoats[i] - amountOfBoats[i] for i in range(len(maxBoats))]
-
-            # Place every remaining boat
-            for i, amount in enumerate(remainingBoats):
-                # TODO: Handle case if boat is not placed.
-                # TODO: Handle coordinate to index conversion
-                for z in range(amount):
-                    print(f"Place boat with length {i}, {amount - z} remaining")
-                    # Create boat
-                    boat = class_boat(
-                        length=i,
-                        x=int(input("X: ")),
-                        y=int(input("Y: ")),
-                        isVertical=input("Vertical? (y/n): ").lower() == "y"
-                    )
-                    if not self.server == None:
-                        player.getBoard().placeBoat(boat) # Check client first
-                        self.server.sendPlaceBoat(boat)
-                    else:
-                        player.getBoard().placeBoat(boat)
-
-    def setupAuto(self):
-        """Automatically setup the game"""
-        # NOTE: May get stuck with placing boats when placed inefficient
-        for player in self.players:
-            if self.server is not None and player is not self.server.getPlayer(): break # Prevent setup of other players if playing online
-            # NOTE: This could be replaced by:
-            # remainingBoats = player.getBoard.maxBoats
-            # Since the board is empty and thus existing boats 0.
-            # This would allow to place boats even if there are already boats residing on the board.
-            board = player.getBoard()
-            existingBoats = board.boats 
-            maxBoats = board.maxBoats
-            amountOfBoats = [len(amount) for amount in existingBoats] 
-            remainingBoats = [maxBoats[i] - amountOfBoats[i] for i in range(len(maxBoats))]
-
-            # Step through every remaining boat
-            for i, amount in enumerate(reversed(remainingBoats)):
-                length = len(remainingBoats) - i - 1 # Re- reverse the index
-                for z in range(amount):
-                    # While not all boats of length are placed, iterate the board and check for collision
-                    y = 0
-                    boat_placed = False
-                    while y < board.size and not boat_placed:
-                        x = 0 # Reset x
-                        while x < board.size and not boat_placed:
-                            boat = class_boat(
-                                length=length,
-                                x=x,
-                                y=y,
-                                isVertical=random.choice([True, False])
-                            )
-                            try:
-                                if not self.server == None:
-                                    player.getBoard().placeBoat(boat) # Check client first
-                                    self.server.sendPlaceBoat(boat)
-                                else:
-                                    player.getBoard().placeBoat(boat)
-                                    print(player.getBoard())
-                                boat_placed = True
-                            except ValueError:
-                                x += 1
-                        y += 1
-    
-    def play(self):
-        """Play the game, not managed by server"""
-        for player in self.players:
-            while not all([boat.isDestroyed() for boat in player.getBoard().boats]):
-                pass
-
-    def playerTurn(self):
-        """Handle a player turn"""
-        for player in self.players:
-            if self.server is not None and player is not self.server.getPlayer(): break # Prevent setup of other players if playing online
-            print("Your turn!")
+        for player in self.player:
             print(player)
-            print("Enter coordinates to shoot at")
+            player.grid=grid(player)
 
-            # Request coordinates until they are valid
-            while True:
-                x = input("X: ")
-                y = input("Y: ")
+    def autoSetup(self):
+        """Setup the game automatically"""
+        pass
 
-                if x.isnumeric() and y.isnumeric():
-                    x = int(x)
-                    y = int(y)
-                    x, y = class_board.toIndex(x, y)
-                else:
-                    print("Please enter a valid number (1-10)")
-                    continue
+    def play(self):
+        """Play the game"""
+        pass
 
-                # Check if indexes are out of bounds or already shot at
-                if x < 0 or y < 0 or x >= player.enemy.getBoard().size or y >= player.enemy.getBoard().size:
-                    # (x or y) < 0 is handled by isnumeric() 
-                    print("Coordinates out of bounds (1-10)")
-                    continue
-                elif player.enemy.getBoard().getState(x, y) != "?":
-                    print("Coordinates already shot at")
-                    continue
-                break
 
-            if not self.server == None:
-                self.server.sendPlaceShot(x, y)
-            else:
-                player.enemy.getBoard().shoot(x, y)
+class websocketClientThread(QThread):
+    def __init__(self, *args):
+        super().__init__()
+        game = args[0]
+        self.threadPool = QThreadPool().globalInstance()
+        self.webSocketClient = websocketClient(*args)
+        self.webSocketClient.signals.opened.connect(lambda: print("Opened"))
+        self.webSocketClient.signals.setup.connect(lambda: game.setup())
+        self.webSocketClient.signals.message.connect(lambda message: print(message))
+        self.webSocketClient.signals.error.connect(lambda e: print(e))
+        self.webSocketClient.signals.closed.connect(lambda code, msg: print(code, msg))
+        self.threadPool.start(self.webSocketClient)
 
-    def getPlayer(self, name):
-        """Return player object by name"""
-        for player in self.players:
-            if player.name == name:
-                return player
-    
-    def nextPhase(self):
-        """Set the phase of the game to the next phase"""
-        self.phase = self.phases[self.phases.index(self.phase) + 1]
-
-    def interact(self, x, y):
-        """Use coordinates to interact with the game"""
-        if self.phase == "SETUP":
-            return self.placeBoat(x, y)
-        elif self.phase == "play":
-            self.shoot(x, y)
+if __name__ == "__main__":
+    import sys
+    from PyQt6.QtWidgets import QApplication
+    app = QApplication(sys.argv)
+    game = game()
+    sys.exit(app.exec())

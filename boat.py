@@ -1,45 +1,43 @@
 class boat:
     def __init__(self, length, isVertical, x, y, isDestroyed=False):
-        """Create a boat object and place it on the board"""
-        self.length = length
-        self.ID = length # Numeric representation in the board array
-        self.isVertical = isVertical # True: array from top to bottom, False: array from left to right.
-        self.isHit = [True if isDestroyed else False for i in range(length)] # Integrity of boat, mark as destroyed if isDestroyed is True
-        self.x= x # Starting x position
-        self.y= y # Starting y position
+        self.length=length
+        self.isVertical=isVertical
+        self.x=x
+        self.y=y
+        self.hits=[False if not isDestroyed else True for i in range(length)]
 
     def __str__(self):
-        """return ID of boat"""
-        return "S" if self.isSunk() else str(self.ID)
-
-
-    def hit(self, x, y):
-        """Hit a boat at given index"""
-        # Set isHit array at given index to True
-        if self.isVertical:
-            self.isHit[y - self.y] = True
-        else:
-            self.isHit[x - self.x] = True
-        # Returns true is boat is sunk
-        return self.isSunk()
-
-    def isSunk(self):
-        """Check if the boat is sunk"""
-        # Return True if all components are hit
-        return all(self.isHit)
- 
-    def getID(self):
-        """Return the ID of the boat, it also represents the length of the boat"""
-        return self.ID
-
-    def getSize(self):
-        """Return the length of the boat"""
-        return self.length
-
-    def getIntegrity(self):
-        """Return the integrity of the boat"""
-        return self.isHit
+        return f"{boat.length}"
+        
 
     def getIndexes(self):
-        """Return the indexes of the boat"""
-        return [self.x, self.y]
+        """Get indexes of boat"""
+        return self.x, self.y
+
+    def getCollisionArea(self):
+        """Get indexes of boat and surrounding indexes"""
+        if self.isVertical:
+            return [(self.x, self.y+i) for i in range(-1, self.length+1)]
+        else:
+            return [(self.x+i, self.y) for i in range(-1, self.length+1)]
+
+    def hit(self, x, y):
+        """Mark hits at index as hit"""
+        boatX, boatY = self.getIndexes()
+        if self.isVertical:
+            self.hits[y-boatY] = True
+        else:
+            self.hits[x-boatX] = True
+        return self.isSunk()
+
+    def isHit(self, x, y):
+        """Check if hits is hit at index"""
+        boatX, boatY = self.getIndexes()
+        if self.isVertical:
+            return self.hits[y-boatY]
+        else:
+            return self.hits[x-boatX]
+
+    def isSunk(self):
+        """Check if boat is sunk"""
+        return all(self.hits)
