@@ -5,7 +5,7 @@ import json
 from PyQt6.QtCore import QRunnable, pyqtSignal, pyqtSlot, QObject
 
 class websocketClient(QRunnable):
-    """Establish websocket connection and send/receive data as woker of threadpool"""
+    """Establish websocket connection and send/receive data as worker of threadpool"""
     def __init__(self, game, url, port, room, name):
         super().__init__()
         self.game = game
@@ -19,7 +19,7 @@ class websocketClient(QRunnable):
     @pyqtSlot()
     def run(self):
         """Start websocket connection"""
-        s = "s" if self.port == 443 else "" # Use secure connection if port is 443
+        s = "s" if self.port == "443" else "" # Use secure connection if port is 443
         self.socket = websocket.WebSocketApp(
             f"ws{s}://{self.url}:{self.port}/?room={self.room}&name={self.name}",
             on_open=lambda ws: self.signals.opened.emit(),
@@ -35,24 +35,25 @@ class websocketClient(QRunnable):
         data = json.loads(message)["data"]
         match type:
             case "GAME_PHASE_CHANGED":
+                self.signals.phase.emit(data["phase"])
                 match data["phase"]:
                     case "WAITING_FOR_PLAYERS":
                         pass
                     case "SETUP":
                         self.game.player[0].setEnemy(data["extra"]["enemy"])
-                        self.signals.setup.emit()
                     case "IN_PROGRESS":
                         pass
                     case "GAME_OVER":
                         pass
             case "PLAYER_CHANGED":
-                if data["player"] == self.name:
+                if data["name"] == self.name:
                     pass
                 else:
                     pass
             case "SHIP_PLACED":
-                pass
+                self.signals.shipPlaced.emit(data["x"], data["y"], data["length"], data["direction"])
             case "SHOT_FIRED":
+                self.signals.shotFired.emit(data["x"], data["y"], data["result"])
                 match data["result"]:
                     case "HIT":
                         pass
@@ -68,12 +69,12 @@ class websocketClient(QRunnable):
         self.socket.send(message)
 
     def sendAction(self, action, data):
+        print(f"Sent: {{\"type\": \"{action}\", \"data\": {data}}}")
         self.send(json.dumps({"type": action, "data": data}))
 
-    @dispatch(int, int, int, bool)
-    def sendPlaceBoat(self, x, y, length, isVertical):
-        direction = "VERTICAL" if isVertical else "HORIZONTAL"
-        self.action("PLACE_SHIP", {"x": x, "y": y, "length": length, "direction": direction})
+    @dispatch(int, int, int, str)
+    def sendPlaceBoat(self, x, y, length, direction):
+        self.sendAction("PLACE_SHIP", {"x": x, "y": y, "length": length, "direction": direction})
 
     @dispatch(boat)
     def sendPlaceBoat(self, boat):
@@ -86,7 +87,9 @@ class websocketClient(QRunnable):
 class WebsocketSignals(QObject):
     """Define the signals available from a running worker thread."""
     opened = pyqtSignal()
-    setup = pyqtSignal()
+    phase = pyqtSignal(str)
+    shipPlaced = pyqtSignal(int, int, int, str)
+    shotFired = pyqtSignal(int, int, str)
     message = pyqtSignal(str)
     error = pyqtSignal(Exception)
     closed = pyqtSignal(int, str)

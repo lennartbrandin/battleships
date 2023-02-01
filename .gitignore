@@ -9,6 +9,7 @@ test*
 
 # Distribution / packaging
 .gitignore
+old/
 .vscode/
 test.py
 .Python

@@ -1,9 +1,9 @@
 # Structural process of the game
-from board import board
-from player import player, enemy, ai
+from board import board as classBoard
+from player import player as classPlayer, enemy as classEnemy, ai as classAI
 from PyQt6.QtCore import QThread, QThreadPool
 from websocketClient import websocketClient
-from ui.mainWindow import mainWindow
+from ui.mainWindow import gameMenu as mainWindow
 from ui.grid import grid
 
 class game(QThread):
@@ -25,7 +25,7 @@ class game(QThread):
         return formattedString
 
 
-    class boardBlueprint(board):
+    class boardBlueprint(classBoard):
         # This class will be used by the players
         def __init__(self, game, filler):
             """Extend the board class with game specific information"""
@@ -37,25 +37,41 @@ class game(QThread):
         self.gameDetails=gameDetails
         if self.gameDetails["gameType"] == "online":
             # Create player, enemy's will be set up by the server
-            self.player.append(player(self, self.gameDetails["player"], '0'))
-            self.startWebsocketClient(self.gameDetails["server"], self.gameDetails["port"], self.gameDetails["room"], self.gameDetails["player"])
+            if len(self.player) > 0:
+                self.error("Game already started")
+                return
+            else:
+                self.player.append(classPlayer(self, self.gameDetails["name"], '0'))
+                self.startWebsocketClient(self.gameDetails["address"], self.gameDetails["port"], self.gameDetails["room"], self.gameDetails["name"])
         elif self.gameDetails["gameType"] == "offline":
-            for i, entry in enumerate(self.gameDetails["players"]):
-                obj = player(self, entry["name"], '0') if entry["type"] == "player" else ai(self, entry["name"])
-                obj.setEnemy(self.player[i-1]) # Set enemy to the previous player 
-                [obj.setEnemy(enemy(self, entry["name"])) for entry in self.gameDetails["players"]] # Create all enemies for the player
-                self.player.append(obj)
+            pass
+        pass
 
+    def setPhase(self, phase):
+        """Set the current phase"""
+        if phase == "WAITING_FOR_PLAYER":
+            pass
+        elif phase == "SETUP":
+            self.player[0].grid = grid(self.player[0])
+
+    def shipPlaced(self, x, y, length, isVertical):
+        self.player[0].board.placeBoat(x, y, length, isVertical)
+        print(self.player[0].board)
+        self.player[0].grid.player.board.update()
+
+    def cleanup(self):
+        """Reset the game"""
+        self.server.socket.close()
+        for player in self.player:
+            player.grid.destroy()
+        self.player=[]
+
+    def error(self, message):
+        print(f"Error: {message}")
 
     def startWebsocketClient(self, host, port, room, name):
         self.websocketClient=websocketClientThread(self, host, port, room, name)
         self.server=self.websocketClient.webSocketClient
-
-    def setup(self):
-        """Setup the game"""
-        for player in self.player:
-            print(player)
-            player.grid=grid(player)
 
     def autoSetup(self):
         """Setup the game automatically"""
@@ -72,10 +88,11 @@ class websocketClientThread(QThread):
         game = args[0]
         self.threadPool = QThreadPool().globalInstance()
         self.webSocketClient = websocketClient(*args)
-        self.webSocketClient.signals.opened.connect(lambda: print("Opened"))
-        self.webSocketClient.signals.setup.connect(lambda: game.setup())
+        self.webSocketClient.signals.opened.connect(lambda: print("Websocket opened"))
+        self.webSocketClient.signals.phase.connect(lambda phase: game.setPhase(phase))
+        self.webSocketClient.signals.shipPlaced.connect(lambda x, y, length, direction: game.shipPlaced(x, y, length, direction == "VERTICAL"))
         self.webSocketClient.signals.message.connect(lambda message: print(message))
-        self.webSocketClient.signals.error.connect(lambda e: print(e))
+        self.webSocketClient.signals.error.connect(lambda e: game.cleanup())
         self.webSocketClient.signals.closed.connect(lambda code, msg: print(code, msg))
         self.threadPool.start(self.webSocketClient)
 

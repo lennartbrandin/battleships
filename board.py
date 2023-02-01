@@ -11,7 +11,7 @@ class board:
 
     def __str__(self):
         """Return board as formatted string"""
-        return '\n'.join([''.join([str(x) for x in row]) for row in self.board])
+        return '\n'.join([' '.join(str(self.get(x, y)) for x in range(self.size)) for y in range(self.size)])
 
 
     @dispatch(class_boat)
@@ -19,7 +19,7 @@ class board:
         """Place a boat on the board"""
         if self.invalidBoatSize(boat):
             raise Exception(f"Invalid boat size: {boat.length}")
-        if self.checkMaxBoats():
+        if self.checkMaxBoats(boat):
             raise Exception(f"Max amount of {boat.length} boats reached")
         if self.checkOutOfBounds(boat):
             raise Exception("Boat is out of bounds")
@@ -31,8 +31,8 @@ class board:
         for x, y in boat.getIndexes():
             self.board[x][y] = boat
 
-    dispatch(int, bool, int, int, isDestroyed=bool)
-    def placeBoat(self, length, isVertical, x, y, isDestroyed=False):
+    @dispatch(int, int, int, bool, isDestroyed=bool)
+    def placeBoat(self, x, y, length, isVertical, isDestroyed=False):
         """Create and place a boat on the board"""
         boat = class_boat(length, isVertical, x, y, isDestroyed)
         self.placeBoat(boat)
@@ -98,10 +98,4 @@ class board:
                 return 'S'
             elif state.isHit(x, y):
                 return 'H'
-        else:
-            return state # This can be the boat_obj, filler or 'M'
-
-    # @dispatch(int, int, int, int)
-    # def get(self, x1, y1, x2, y2):
-    #     """Get state of indexes in range"""
-    #     return [self.get(x, y) for x in range(x1, x2) for y in range(y1, y2)]
+        return state # This can be the boat_obj, filler or 'M'

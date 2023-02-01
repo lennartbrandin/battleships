@@ -19,10 +19,9 @@ class player:
             formattedString += "\n"
         return formattedString
 
-    
     def setEnemy(self, enemyName):
         """Set the enemy of the player"""
-        self.enemy=enemy(self, enemyName)
+        self.enemy=enemy(self.game, enemyName)
 
     def shootSelf(self, x, y, override=False):
         """Shoot indexes at self, return if isHit"""
@@ -35,8 +34,8 @@ class player:
                 
 class enemy(player):
     """An enemy of a player, holding all known information about the enemy"""
-    def __init__(self, player, name):
-        super().__init__(player.game, name, '?')
+    def __init__(self, game, name):
+        super().__init__(game, name, '?')
 
 class ai(player):
     """An AI player"""
@@ -46,7 +45,8 @@ class ai(player):
 if __name__=="__main__":
     from game import game
     g = game(disableUI=True)
-    p = ai(g, "Player")
+    p = player(g, "Player", "0")
     p.setEnemy("Enemy")
     p.shootEnemy(0, 0)
+    p.shootSelf(0, 0)
     print(p)
