@@ -6,9 +6,9 @@ from PyQt6.QtCore import QRunnable, pyqtSignal, pyqtSlot, QObject
 
 class websocketClient(QRunnable):
     """Establish websocket connection and send/receive data as worker of threadpool"""
-    def __init__(self, game, url, port, room, name):
+    def __init__(self, player, url, port, room, name):
         super().__init__()
-        self.game = game
+        self.player = player
         self.url = url
         self.port = port
         self.room = room
@@ -40,7 +40,7 @@ class websocketClient(QRunnable):
                     case "WAITING_FOR_PLAYERS":
                         pass
                     case "SETUP":
-                        self.game.player[0].setEnemy(data["extra"]["enemy"])
+                        self.player.setEnemy(data["extra"]["enemy"])
                     case "IN_PROGRESS":
                         pass
                     case "GAME_OVER":
@@ -53,7 +53,7 @@ class websocketClient(QRunnable):
             case "SHIP_PLACED":
                 self.signals.shipPlaced.emit(data["x"], data["y"], data["length"], data["direction"])
             case "SHOT_FIRED":
-                self.signals.shotFired.emit(data["x"], data["y"], data["result"])
+                self.signals.shotFired.emit(data["x"], data["y"], data["player"], data["result"])
                 match data["result"]:
                     case "HIT":
                         pass
@@ -81,7 +81,7 @@ class websocketClient(QRunnable):
         self.sendPlaceBoat(boat.x, boat.y, boat.length, boat.isVertical)
 
     def sendFireShot(self, x, y):
-        self.action("FIRE_SHOT", {"x": x, "y": y})
+        self.sendAction("FIRE_SHOT", {"x": x, "y": y})
 
 
 class WebsocketSignals(QObject):
@@ -89,7 +89,7 @@ class WebsocketSignals(QObject):
     opened = pyqtSignal()
     phase = pyqtSignal(str)
     shipPlaced = pyqtSignal(int, int, int, str)
-    shotFired = pyqtSignal(int, int, str)
+    shotFired = pyqtSignal(int, int, str, str)
     message = pyqtSignal(str)
     error = pyqtSignal(Exception)
     closed = pyqtSignal(int, str)

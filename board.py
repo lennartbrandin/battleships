@@ -3,11 +3,11 @@ from multipledispatch import dispatch
 class board:
     """A board holding boats and shots"""
     def __init__(self, maxBoats, size, filler):
-        self.maxBoats=maxBoats # Boat limit per length (e.g. 1x5, 2x4, 3x3, 4x2 = [0, 0, 1, 2, 3, 4])
+        self.maxBoats={k: int(v) for k, v in maxBoats.items()} # Boat limit per length {0: 0, 1: 0, 2: 4, 3: 3, 4: 2, 5: 1}
         self.boats=[[] for i in range(len(maxBoats))] # Keeps track of boats per length
-        self.size=size
+        self.size=int(size)
         self.filler=filler
-        self.board=[[filler for y in range(size)] for x in range(size)]
+        self.board=[[filler for y in range(self.size)] for x in range(self.size)]
 
     def __str__(self):
         """Return board as formatted string"""
@@ -60,7 +60,7 @@ class board:
 
     def invalidBoatSize(self, boat):
         """Check if boat size is invalid"""
-        return boat.length < 1 or boat.length >= len(self.maxBoats)
+        return boat.length not in self.maxBoats
 
     def checkMaxBoats(self, boat):
         """Check if max amount of boats with boat length is reached"""

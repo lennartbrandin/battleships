@@ -1,33 +1,41 @@
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
-from player import enemy as class_enemy
-from ui.mainWindow import deleteItems
+from ui.gameMenu import deleteItems
 
-class grid(QWidget):
+class grid(QDialog):
     def __init__(self, player):
-        super(QWidget, self).__init__()
-        self.mainLayout = QHBoxLayout()
-        self.player = self.playerLayout(player)
-        self.mainLayout.addLayout(self.player)
+        super(QDialog, self).__init__()
+        self.server = player.server.socket
+        self.mainLayout = QVBoxLayout()
+
+        self.boatDetails = self.boatDetailsLayout(player)
+        self.playerLayouts = QHBoxLayout()
+        self.player = self.playerLayout(player, self.boatDetails.details)
         self.enemy = self.playerLayout(player.enemy)
-        self.mainLayout.addLayout(self.enemy)
+
+        self.playerLayouts.addLayout(self.player)
+        self.playerLayouts.addLayout(self.enemy)
+        self.mainLayout.addLayout(self.playerLayouts)
+        self.mainLayout.addLayout(self.boatDetails)
+
+        self.setWindowModality(Qt.WindowModality.WindowModal)
+        # Apply style only on this dialog
+        self.setObjectName("grid")
+        self.setStyleSheet("QDialog#grid {border: 1px solid #DDDDDD;}")
         self.setLayout(self.mainLayout)
-        self.show()
+
+    def closeEvent(self, event):
+        self.server.close() # This will trigger the game cleanup
+        event.accept()
 
     class playerLayout(QVBoxLayout):
-        def __init__(self, player):
+        def __init__(self, player, boatDetails=None):
             super().__init__()
+            self.boatDetails = boatDetails
             self.addWidget(QLabel(player.name))
-            if not isinstance(player, class_enemy):
-                self.boatDetails = self.boatDetailsLayout()
-                self.board = self.gridLayout(player, self.boatDetails.details)
-                self.addLayout(self.board)
-                self.addLayout(self.boatDetails)
-            else:
-                self.setEnabled(False)
-                self.board = self.gridLayout(player)
-                self.addLayout(self.board)
+            self.board = self.gridLayout(player, self.boatDetails)
+            self.addLayout(self.board)
             self.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         class gridLayout(QGridLayout):
@@ -43,29 +51,56 @@ class grid(QWidget):
                 deleteItems(self)
                 for a in range(self.board.size):
                     for b in range(self.board.size):
-                        button = QPushButton(str(self.board.get(b, a)))
+                        state = self.board.get(b, a)
+                        button = QPushButton(str(state))
+                        colors = {"HIT": "red", "MISS": "blue", "SUNK": "red", "EMPTY": "white"}
+                        color = colors[state] if state in colors else colors["EMPTY"]
+                        button.setStyleSheet(f"background-color: {color}; border-radius: 0px; border: 0.5px solid #DDDDDD;")
+                        button.setFixedSize(35, 35)
                         self.addWidget(button, a, b)
-                        button.clicked.connect(lambda c, x=b, y=a: self.player.game.server.sendPlaceBoat(x, y, int(self.boatDetails["length"]), self.boatDetails["direction"]))
+                        if not self.player.isEnemy:
+                            button.clicked.connect(lambda c, x=b, y=a: self.player.server.sendPlaceBoat(x, y, int(self.boatDetails["length"]), self.boatDetails["direction"]))
+                        else:
+                            button.clicked.connect(lambda c, x=b, y=a: self.player.server.sendFireShot(x, y))
         
-        class boatDetailsLayout(QHBoxLayout):
-            def __init__(self):
-                super().__init__()
-                self.details = {}
-                self.defaultValues()
-                # TODO: Automatically get max Boats
-                # TODO: Display number of boats left
-                self.selectorShipLength = QComboBox()
-                self.selectorShipLength.addItems(["2", "3", "4", "5"])
-                self.selectorShipLength.setCurrentText(self.details["length"])
-                self.selectorShipLength.currentTextChanged.connect(lambda v: self.details.update({"length": v}))
-                self.addWidget(self.selectorShipLength)
+    class boatDetailsLayout(QHBoxLayout):
+        def __init__(self, player):
+            super().__init__()
+            self.player = player
+            self.board = player.board
+            self.details = {}
+            self.defaultValues()
+            # TODO: Automatically get max Boats
+            # TODO: Display number of boats left
+            self.selectorShipLength = QComboBox()
+            self.selectorShipLength.addItems([str(k) for k, v in self.board.maxBoats.items()])
+            self.selectorShipLength.setCurrentText(self.details["length"])
+            self.selectorShipLength.currentTextChanged.connect(lambda v: self.details.update({"length": v}))
+            self.addWidget(self.selectorShipLength)
 
-                self.selectorShipDirection = QComboBox()
-                self.selectorShipDirection.addItems(["VERTICAL", "HORIZONTAL"])
-                self.selectorShipDirection.setCurrentText(self.details["direction"])
-                self.selectorShipDirection.currentTextChanged.connect(lambda v: self.details.update({"direction": v}))
-                self.addWidget(self.selectorShipDirection)
+            self.selectorShipDirection = QComboBox()
+            self.selectorShipDirection.addItems(["VERTICAL", "HORIZONTAL"])
+            self.selectorShipDirection.setCurrentText(self.details["direction"])
+            self.selectorShipDirection.currentTextChanged.connect(lambda v: self.details.update({"direction": v}))
+            self.addWidget(self.selectorShipDirection)
 
-            def defaultValues(self):
-                self.details["length"] = "2"
-                self.details["direction"] = "VERTICAL"
+            def autoPlace():
+                for l in range(len(self.board.maxBoats)):
+                    for a in range(self.board.size):
+                        for b in range(self.board.size):
+                            self.player.server.sendPlaceBoat(b, a, l, self.details["direction"])
+            self.placeAllBoats = QPushButton("AutoPlace")
+            self.placeAllBoats.clicked.connect(lambda: autoPlace())
+            self.addWidget(self.placeAllBoats)
+
+            def autoShoot():
+                for a in range(self.board.size):
+                    for b in range(self.board.size):
+                        self.player.server.sendFireShot(a, b)
+            self.shootAll = QPushButton("AutoShoot")
+            self.shootAll.clicked.connect(lambda: autoShoot())
+            self.addWidget(self.shootAll)
+
+        def defaultValues(self):
+            self.details["length"] = "2"
+            self.details["direction"] = "VERTICAL"

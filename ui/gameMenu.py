@@ -4,19 +4,21 @@ from PyQt6.QtGui import *
 
 
 class gameMenu(QMainWindow):
+    """Game configuration menu"""
     def __init__(self, game):
         super().__init__()
+        # Style
         self.setWindowTitle("Battleships")
         self.resize(800, 600)
 
-        centralWidget = QWidget()
-        self.main = self.mainLayout(game)
-        centralWidget.setLayout(self.main)
-        self.setCentralWidget(centralWidget)
+        self.centralWidget = QWidget()
+        self.main = self.mainLayout(game) # Pass game to start button function
+        self.centralWidget.setLayout(self.main)
+        self.setCentralWidget(self.centralWidget)
         self.show()
 
     class mainLayout(QVBoxLayout):
-        """Combine game detail prompts and game Type details"""
+        """Combination of game type and game details"""
         def __init__(self, game):
             super().__init__()
             self.setSpacing(0)
@@ -26,7 +28,7 @@ class gameMenu(QMainWindow):
             self.addLayout(self.gameDetails)
 
         class gameTypeDetailsLayout(QHBoxLayout):
-            """Start game button and game type selector, responsible for updating the game details layout"""
+            """Game start button and game type selector"""
             def __init__(self, game):
                 super().__init__()
                 self.game = game
@@ -39,6 +41,7 @@ class gameMenu(QMainWindow):
                 self.gameDetails = self.gameDetailsLayout()
 
                 self.buttonStartGame.clicked.connect(lambda: self.game.startGame(self.gameDetails.details))
+                # Update the game details layout when the game type is changed
                 self.selectorGameType.currentTextChanged.connect(lambda gameType: self.updateGameDetailsLayout(gameType))
 
             def updateGameDetailsLayout(self, gameType):
@@ -47,26 +50,27 @@ class gameMenu(QMainWindow):
                 self.gameDetails.update(gameType)
 
             class gameDetailsLayout(QVBoxLayout):
+                """Store the game details and create a layout for them"""
                 def __init__(self):
                     super().__init__()
                     self.setSpacing(0)
                     self.details = {}
                     self.defaultValues()
-                    self.update(self.details["gameType"])
+                    self.update(self.details["gameType"]) # Creation of layout using the default gameType
 
                 def defaultValues(self):
                     """Set the default values for the game details"""
                     self.details["gameType"] = "online"
 
                     # Online game details
-                    self.details["address"] = "battleships.lennardwalter.com"
-                    self.details["port"] = "443"
+                    self.details["address"] = "localhost"
+                    self.details["port"] = "8080"
                     self.details["room"] = "1"
                     self.details["name"] = "Player"
 
                     # Offline game details
                     self.details["board size"] = "10"
-                    self.details["max boats"] = {str(k): str(v) for k, v in enumerate([0, 0, 4, 3, 2, 1])} # {"length": "amount"}
+                    self.details["max boats"] = {k: str(v) for k, v in enumerate([0, 0, 4, 3, 2, 1])} # {"length": "amount"}
                     self.details["player amount"] = "2"
 
                 def update(self, gameType):
@@ -78,20 +82,25 @@ class gameMenu(QMainWindow):
 
                     # Add the correct items to the layout
                     def detailPrompt(label, dict=self.details):
+                        """Create a label and input for a given game detail"""
                         layout = QHBoxLayout()
                         layout.addWidget(QLabel(f"{label}:"))
-                        input = QLineEdit(dict[label.lower()])
-                        input.textChanged.connect(lambda text: dict.update({label.lower(): text}))
+                        key = int(label) if label.isnumeric() else label.lower() 
+                        input = QLineEdit(dict[key]) # Set the start value to the saved game detail (Except for maxBoats)
+                        input.textChanged.connect(lambda text: dict.update({key: text})) # Update the game detail when the input is changed
                         layout.addWidget(input)
                         return layout
 
+                    # Add the correct items to the layout
                     if gameType == "online":
                         [self.addLayout(detailPrompt(label)) for label in ["Address", "Port", "Room", "Name"]]
                     elif gameType == "offline":
                         [self.addLayout(detailPrompt(label)) for label in ["Board size", "Player amount"]]
 
                         maxBoats = QHBoxLayout()
-                        [maxBoats.addLayout(detailPrompt(label, self.details["max boats"])) for label in self.details["max boats"]]
+                        maxBoats.addWidget(QLabel("Max boats:"))
+                        [maxBoats.addLayout(detailPrompt(str(label), self.details["max boats"])) for label in self.details["max boats"]]
+                        self.addLayout(maxBoats)
 
                     
 
