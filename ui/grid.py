@@ -53,7 +53,7 @@ class grid(QDialog):
                     for b in range(self.board.size):
                         state = self.board.get(b, a)
                         button = QPushButton(str(state))
-                        colors = {"HIT": "red", "MISS": "blue", "SUNK": "red", "EMPTY": "white"}
+                        colors = {"HIT": "red", "MISS": "grey", "SUNK": "red", "EMPTY": "white"}
                         color = colors[state] if state in colors else colors["EMPTY"]
                         button.setStyleSheet(f"background-color: {color}; border-radius: 0px; border: 0.5px solid #DDDDDD;")
                         button.setFixedSize(35, 35)
@@ -61,7 +61,8 @@ class grid(QDialog):
                         if not self.player.isEnemy:
                             button.clicked.connect(lambda c, x=b, y=a: self.player.server.sendPlaceBoat(x, y, int(self.boatDetails["length"]), self.boatDetails["direction"]))
                         else:
-                            button.clicked.connect(lambda c, x=b, y=a: self.player.server.sendFireShot(x, y))
+                            # If self is enemy, use the socket of self.enemy (the player)
+                            button.clicked.connect(lambda c, x=b, y=a: self.player.enemy.server.sendFireShot(x, y))
         
     class boatDetailsLayout(QHBoxLayout):
         def __init__(self, player):

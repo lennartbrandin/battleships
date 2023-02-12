@@ -46,6 +46,7 @@ class player:
     def setEnemy(self, enemyName):
         """Set the enemy of the player"""
         self.enemy=enemy(self.game, enemyName)
+        self.enemy.enemy=self # The player object is the enemy's enemy
 
     def shootSelf(self, x, y, override=False):
         """Shoot indexes at self, return if isHit"""
