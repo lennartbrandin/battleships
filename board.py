@@ -3,7 +3,7 @@ from multipledispatch import dispatch
 class board:
     """A board holding boats and shots"""
     def __init__(self, maxBoats, size, filler):
-        self.maxBoats={k: int(v) for k, v in maxBoats.items()} # Boat limit per length {0: 0, 1: 0, 2: 4, 3: 3, 4: 2, 5: 1}
+        self.maxBoats={int(k): int(v) for k, v in maxBoats.items()} # Boat limit per length {0: 0, 1: 0, 2: 4, 3: 3, 4: 2, 5: 1}
         self.boats=[[] for i in range(len(maxBoats))] # Keeps track of boats per length
         self.size=int(size)
         self.filler=filler
@@ -53,9 +53,9 @@ class board:
                 # If override is set, mark indexes as override
                 # Used if websocket communicates a shot
                 self.board[x][y] = override
-                return True if override == 'X' else False
+                return True if override == 'HIT' else False
             else:
-                self.board[x][y] = 'M'
+                self.board[x][y] = 'MISS'
                 return False
 
     def invalidBoatSize(self, boat):
@@ -92,10 +92,4 @@ class board:
     dispatch(int, int)
     def get(self, x, y):
         """Get state of indexes"""
-        state = self.board[x][y]
-        if isinstance(state, class_boat):
-            if state.isSunk():
-                return 'S'
-            elif state.isHit(x, y):
-                return 'H'
-        return state # This can be the boat_obj, filler or 'M'
+        return self.board[x][y] # This can be the boat_obj, filler or 'MISS'

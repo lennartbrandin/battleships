@@ -1,9 +1,11 @@
-from ui.grid import grid as class_grid
+from ui.grid import grid as classGrid
+from ui.placeholder import placeholder as classPlaceholder
 class player:
     """A player in the game"""
-    def __init__(self, game, name, filler):
+    def __init__(self, game, name, roomName, filler):
         self.game=game
         self.name=name
+        self.roomName=roomName
         self.board=game.boardBlueprint(game, filler)
         self.isEnemy=False
 
@@ -21,15 +23,23 @@ class player:
             formattedString += "\n"
         return formattedString
     
-    def setPhase(self, phase):
+    def setPhase(self, data):
         """Set the current phase"""
-        if phase == "WAITING_FOR_PLAYER":
-            pass
-        elif phase == "SETUP":
-            self.grid = class_grid(self)
-            self.grid.exec()
-        elif phase == "IN_PROGRESS":
-            pass
+        self.phase = data["phase"]
+        self.grid.gameInfo.gamePhase.update(self.phase) if hasattr(self, "grid") else None
+        match self.phase:
+            case "WAITING_FOR_PLAYERS":
+                self.placeholder.update("Waiting for player")
+            case "SETUP":
+                self.placeholder.close()
+                self.setEnemy(data["extra"]["enemy"])
+                self.grid = classGrid(self)
+                self.grid.show()
+                self.grid.start(self)
+            case "IN_PROGRESS":
+                pass
+            case "GAME_OVER":
+                self.grid.gameOver(data["extra"]["winner"], data["extra"]["reason"])
     
     def shipPlaced(self, x, y, length, isVertical):
         self.board.placeBoat(x, y, length, isVertical)
@@ -43,9 +53,20 @@ class player:
             self.enemy.board.placeShot(x, y, override=result)
             self.grid.enemy.board.update()
 
+    def createPlaceholder(self):
+        """Create a placeholder on websocket open"""
+        print("Creating placeholder")
+        self.placeholder = classPlaceholder(self, "Connecting to server")
+
+    def websocketClosed(self, code, message):
+        """Close the placeholder on websocket close"""
+        print(f"Websocket closed with code {code} and message: {message}")
+        self.placeholder.close() 
+        self.grid.close() if hasattr(self, "grid") else None
+
     def setEnemy(self, enemyName):
         """Set the enemy of the player"""
-        self.enemy=enemy(self.game, enemyName)
+        self.enemy=enemy(self.game, enemyName, self.roomName)
         self.enemy.enemy=self # The player object is the enemy's enemy
 
     def shootSelf(self, x, y, override=False):
@@ -59,8 +80,8 @@ class player:
                 
 class enemy(player):
     """An enemy of a player, holding all known information about the enemy"""
-    def __init__(self, game, name):
-        super().__init__(game, name, '?')
+    def __init__(self, game, name, roomName):
+        super().__init__(game, name, roomName, '?')
         self.isEnemy=True
 
 class ai(player):

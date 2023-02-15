@@ -8,7 +8,6 @@ class boat:
 
     def __str__(self):
         return f"{self.length}"
-        
 
     def getIndex(self):
         """Get indexes of boat"""
@@ -30,7 +29,7 @@ class boat:
             x1, x2 = self.x-1, self.x+self.length
             y1, y2 = self.y-1, self.y+1
         return [(x, y) for x in range(x1, x2) for y in range(y1, y2)]
-
+    
     def hit(self, x, y):
         """Mark hits at index as hit"""
         boatX, boatY = self.getIndex()
@@ -39,7 +38,7 @@ class boat:
         else:
             self.hits[x-boatX] = True
         return self.isSunk()
-
+    
     def isHit(self, x, y):
         """Check if hits is hit at index"""
         boatX, boatY = self.getIndex()

@@ -2,13 +2,29 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from ui.gameMenu import deleteItems
+from ui.timer import timer
+from ui.gameOver import gameOverDialog
+from multipledispatch import dispatch
 
-class grid(QDialog):
+class grid(QWidget):
     def __init__(self, player):
-        super(QDialog, self).__init__()
+        super(QWidget, self).__init__()
+        self.player = player
         self.server = player.server.socket
         self.mainLayout = QVBoxLayout()
 
+        self.gameInfo = self.gameInfoLayout(player.roomName, "SETUP")
+        self.mainLayout.addLayout(self.gameInfo)
+
+        self.setWindowTitle("Battleships")
+        # Apply style only on this dialog
+        self.setObjectName("grid")
+        self.setStyleSheet("QWidget#grid {border: 1px solid #DDDDDD;}")
+        self.setLayout(self.mainLayout)
+
+        self.show()
+
+    def start(self, player):
         self.boatDetails = self.boatDetailsLayout(player)
         self.playerLayouts = QHBoxLayout()
         self.player = self.playerLayout(player, self.boatDetails.details)
@@ -19,15 +35,47 @@ class grid(QDialog):
         self.mainLayout.addLayout(self.playerLayouts)
         self.mainLayout.addLayout(self.boatDetails)
 
-        self.setWindowModality(Qt.WindowModality.WindowModal)
-        # Apply style only on this dialog
-        self.setObjectName("grid")
-        self.setStyleSheet("QDialog#grid {border: 1px solid #DDDDDD;}")
-        self.setLayout(self.mainLayout)
+    def gameOver(self, player, reason):
+        self.gameInfo.timer.timer.stop()
+        self.gameInfo.timer.button.setText("Game ended")
+        self.gameOver = gameOverDialog(player, reason)
 
     def closeEvent(self, event):
-        self.server.close() # This will trigger the game cleanup
+        self.server.close()
         event.accept()
+
+    class gameInfoLayout(QHBoxLayout):
+        def __init__(self, roomName, gamePhase):
+            super().__init__()
+            self.roomName = self.roomNameLayout(roomName)
+            self.gamePhase = self.gamePhaseLayout(gamePhase)
+            self.timer = timer()
+            self.addLayout(self.roomName)
+            self.addLayout(self.gamePhase)
+            self.addWidget(self.timer)
+
+        class roomNameLayout(QHBoxLayout):
+            def __init__(self, name):
+                super().__init__()
+                self.label = QLabel("Room name: ")
+                self.name = QLabel(name)
+                self.addWidget(self.label)
+                self.addWidget(self.name)
+                self.setAlignment(Qt.AlignmentFlag.AlignLeft)
+                self.setSpacing(0)
+
+        class gamePhaseLayout(QHBoxLayout):
+            def __init__(self, phase):
+                super().__init__()
+                self.label = QLabel("Game phase: ")
+                self.phase = QLabel(phase)
+                self.addWidget(self.label)
+                self.addWidget(self.phase)
+                self.setAlignment(Qt.AlignmentFlag.AlignLeft)
+                self.setSpacing(0)
+
+            def update(self, phase):
+                self.phase.setText(phase)
 
     class playerLayout(QVBoxLayout):
         def __init__(self, player, boatDetails=None):
@@ -43,26 +91,42 @@ class grid(QDialog):
                 super().__init__()
                 self.setSpacing(0)
                 self.player = player
+                self.game = player.game
                 self.board = player.board
                 self.boatDetails = boatDetails
                 self.update()
 
+            @dispatch()
             def update(self):
                 deleteItems(self)
                 for a in range(self.board.size):
                     for b in range(self.board.size):
-                        state = self.board.get(b, a)
-                        button = QPushButton(str(state))
-                        colors = {"HIT": "red", "MISS": "grey", "SUNK": "red", "EMPTY": "white"}
-                        color = colors[state] if state in colors else colors["EMPTY"]
-                        button.setStyleSheet(f"background-color: {color}; border-radius: 0px; border: 0.5px solid #DDDDDD;")
-                        button.setFixedSize(35, 35)
-                        self.addWidget(button, a, b)
-                        if not self.player.isEnemy:
-                            button.clicked.connect(lambda c, x=b, y=a: self.player.server.sendPlaceBoat(x, y, int(self.boatDetails["length"]), self.boatDetails["direction"]))
-                        else:
-                            # If self is enemy, use the socket of self.enemy (the player)
-                            button.clicked.connect(lambda c, x=b, y=a: self.player.enemy.server.sendFireShot(x, y))
+                        self.update(a, b)
+
+            @dispatch(int, int)
+            def update(self, x, y):
+                if self.itemAtPosition(y, x):
+                    self.itemAtPosition(y, x).widget().deleteLater()
+                state = self.board.get(x, y)
+                button = QPushButton()
+                button.setFixedSize(40, 40)
+                colors = {"HIT": "red", "MISS": "grey", "SUNK": "red", self.player.board.filler: "white"}
+                if state in colors:
+                    color = colors[state]
+                    button.setStyleSheet(f"background-color: {color}; border-radius: 0px; border: 0.5px solid #DDDDDD;")
+                else:
+                    # State is a boat
+                    button.setIcon(self.game.boatIcons.get(state, x, y))
+                    button.setIconSize(QSize(40, 40))
+
+                if self.player.isEnemy:
+                    # If self is enemy, use the socket of self.enemy (the player)
+                    button.clicked.connect(lambda c, x=x, y=y: self.player.enemy.server.sendFireShot(x, y))
+                else:
+                    button.clicked.connect(lambda c, x=x, y=y: self.player.server.sendPlaceBoat(x, y, int(self.boatDetails["length"]), self.boatDetails["direction"]))
+
+                self.addWidget(button, y, x)
+
         
     class boatDetailsLayout(QHBoxLayout):
         def __init__(self, player):
@@ -100,6 +164,7 @@ class grid(QDialog):
                         self.player.server.sendFireShot(a, b)
             self.shootAll = QPushButton("AutoShoot")
             self.shootAll.clicked.connect(lambda: autoShoot())
+
             self.addWidget(self.shootAll)
 
         def defaultValues(self):

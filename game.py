@@ -4,6 +4,7 @@ from player import player as classPlayer, enemy as classEnemy, ai as classAI
 from PyQt6.QtCore import QThread, QThreadPool
 from websocketClient import websocketClient
 from ui.gameMenu import gameMenu
+from ui.graphics.boatImage import icons
 
 class game():
     """Structural process of the game"""
@@ -30,11 +31,12 @@ class game():
     def startGame(self, gameDetails):
         """Create game"""
         self.gameDetails=gameDetails # Save details that were passed from the ui
+        self.boatIcons = icons(self)
         if self.gameDetails["gameType"] == "online":
             # Create player, enemies will be set up by the server
-            player = classPlayer(self, self.gameDetails["name"], '0')
-            server = websocketClientThread(player, self.gameDetails["address"], self.gameDetails["port"], self.gameDetails["room"], player.name)
-            player.server = server.webSocketClient
+            player = classPlayer(self, self.gameDetails["name"], self.gameDetails["room"], '0')
+            player.webSocket = websocketClientThread(player, self.gameDetails["address"], self.gameDetails["port"], player.roomName, player.name)
+            player.server = player.webSocket.webSocketClient
             self.players.append(player)
         elif self.gameDetails["gameType"] == "offline":
             pass
@@ -55,13 +57,13 @@ class websocketClientThread(QThread):
         self.player = args[0]
         self.threadPool = QThreadPool().globalInstance()
         self.webSocketClient = websocketClient(*args)
-        self.webSocketClient.signals.opened.connect(lambda: print("Websocket opened"))
-        self.webSocketClient.signals.phase.connect(lambda phase: self.player.setPhase(phase))
+        self.webSocketClient.signals.opened.connect(lambda: self.player.createPlaceholder())
+        self.webSocketClient.signals.phase.connect(lambda data: self.player.setPhase(data))
         self.webSocketClient.signals.shipPlaced.connect(lambda x, y, length, direction: self.player.shipPlaced(x, y, length, direction == "VERTICAL"))
         self.webSocketClient.signals.shotFired.connect(lambda x, y, player, result: self.player.shotFired(x, y, player, result))
         self.webSocketClient.signals.message.connect(lambda message: print(message))
         self.webSocketClient.signals.error.connect(lambda e: print(e))
-        self.webSocketClient.signals.closed.connect(lambda code, msg: print(msg))
+        self.webSocketClient.signals.closed.connect(lambda code, msg: self.player.websocketClosed(code, msg))
         self.threadPool.start(self.webSocketClient)
 
 if __name__ == "__main__":

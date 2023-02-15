@@ -1,0 +1,17 @@
+{
+    "gameType": "online",
+    "address": "lennartbrandin.com",
+    "port": "80",
+    "room": "1",
+    "name": "Player",
+    "board size": "10",
+    "max boats": {
+        "0": "0",
+        "1": "0",
+        "2": "4",
+        "3": "3",
+        "4": "2",
+        "5": "1"
+    },
+    "player amount": "2"
+}

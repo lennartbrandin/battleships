@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 test*
+ui/graphics/*.png
+profiles/*json
+!profiles/default.json
 
 # C extensions
 *.so

@@ -1,12 +1,14 @@
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
-
+from profiles import *
+from ui.profileManager import *
 
 class gameMenu(QMainWindow):
     """Game configuration menu"""
     def __init__(self, game):
         super().__init__()
+        self.game = game
         # Style
         self.setWindowTitle("Battleships")
         self.resize(800, 600)
@@ -17,19 +19,28 @@ class gameMenu(QMainWindow):
         self.setCentralWidget(self.centralWidget)
         self.show()
 
+    def closeEvent(self, event):
+        """Close all player grids when the game menu is closed"""
+        for player in self.game.players:
+            player.grid.close()
+        event.accept()
+
     class mainLayout(QVBoxLayout):
         """Combination of game type and game details"""
         def __init__(self, game):
             super().__init__()
             self.setSpacing(0)
-            self.gameTypeDetails = self.gameTypeDetailsLayout(game)
+            self.details = profile("default").profile
+
+            self.profiles = profileLayout()
+            self.gameTypeDetails = self.gameTypeDetailsLayout(game, self.details)
             self.addLayout(self.gameTypeDetails)
-            self.gameDetails = self.gameTypeDetails.gameDetails # Create a reference to the game details layout
-            self.addLayout(self.gameDetails)
+            self.addLayout(self.profiles)
+            self.addLayout(self.gameTypeDetails.gameDetails)
 
         class gameTypeDetailsLayout(QHBoxLayout):
             """Game start button and game type selector"""
-            def __init__(self, game):
+            def __init__(self, game, details):
                 super().__init__()
                 self.game = game
                 self.setSpacing(0)
@@ -38,7 +49,7 @@ class gameMenu(QMainWindow):
                 self.selectorGameType.addItems(["online", "offline"])
                 self.addWidget(self.selectorGameType)
                 self.addWidget(self.buttonStartGame)
-                self.gameDetails = self.gameDetailsLayout()
+                self.gameDetails = self.gameDetailsLayout(details)
 
                 self.buttonStartGame.clicked.connect(lambda: self.game.startGame(self.gameDetails.details))
                 # Update the game details layout when the game type is changed
@@ -51,27 +62,11 @@ class gameMenu(QMainWindow):
 
             class gameDetailsLayout(QVBoxLayout):
                 """Store the game details and create a layout for them"""
-                def __init__(self):
+                def __init__(self, details):
                     super().__init__()
                     self.setSpacing(0)
-                    self.details = {}
-                    self.defaultValues()
+                    self.details = details
                     self.update(self.details["gameType"]) # Creation of layout using the default gameType
-
-                def defaultValues(self):
-                    """Set the default values for the game details"""
-                    self.details["gameType"] = "online"
-
-                    # Online game details
-                    self.details["address"] = "localhost"
-                    self.details["port"] = "8080"
-                    self.details["room"] = "1"
-                    self.details["name"] = "Player"
-
-                    # Offline game details
-                    self.details["board size"] = "10"
-                    self.details["max boats"] = {k: str(v) for k, v in enumerate([0, 0, 4, 3, 2, 1])} # {"length": "amount"}
-                    self.details["player amount"] = "2"
 
                 def update(self, gameType):
                     """Update the game details layout based on the game type"""
@@ -100,9 +95,7 @@ class gameMenu(QMainWindow):
                         maxBoats = QHBoxLayout()
                         maxBoats.addWidget(QLabel("Max boats:"))
                         [maxBoats.addLayout(detailPrompt(str(label), self.details["max boats"])) for label in self.details["max boats"]]
-                        self.addLayout(maxBoats)
-
-                    
+                        self.addLayout(maxBoats)  
 
 def deleteItems(layout):
     """Delete all items in the layout"""

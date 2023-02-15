@@ -35,12 +35,12 @@ class websocketClient(QRunnable):
         data = json.loads(message)["data"]
         match type:
             case "GAME_PHASE_CHANGED":
-                self.signals.phase.emit(data["phase"])
+                self.signals.phase.emit(data)
                 match data["phase"]:
                     case "WAITING_FOR_PLAYERS":
                         pass
                     case "SETUP":
-                        self.player.setEnemy(data["extra"]["enemy"])
+                        pass
                     case "IN_PROGRESS":
                         pass
                     case "GAME_OVER":
@@ -64,7 +64,6 @@ class websocketClient(QRunnable):
             case "ERROR":
                 pass
 
-
     def send(self, message):
         self.socket.send(message)
 
@@ -87,25 +86,9 @@ class websocketClient(QRunnable):
 class WebsocketSignals(QObject):
     """Define the signals available from a running worker thread."""
     opened = pyqtSignal()
-    phase = pyqtSignal(str)
+    phase = pyqtSignal(dict)
     shipPlaced = pyqtSignal(int, int, int, str)
     shotFired = pyqtSignal(int, int, str, str)
     message = pyqtSignal(str)
     error = pyqtSignal(Exception)
     closed = pyqtSignal(int, str)
-
-if __name__=="__main__":
-    from PyQt6.QtCore import QThreadPool
-    from PyQt6.QtWidgets import QApplication
-    from game import game
-    import sys
-    app = QApplication(sys.argv)
-    threadPool = QThreadPool()
-    game = game()
-    ws = websocketClient(game, "localhost", 8080, "test", "test")
-    ws.signals.opened.connect(lambda: print("Opened"))
-    ws.signals.message.connect(lambda message: print(message))
-    ws.signals.error.connect(lambda e: print(e))
-    ws.signals.closed.connect(lambda code, msg: print(code, msg))
-    threadPool.start(ws)
-    sys.exit(app.exec())
