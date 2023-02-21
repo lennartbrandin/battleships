@@ -9,7 +9,6 @@ from ui.graphics.boatImage import icons
 class game():
     """Structural process of the game"""
     def __init__(self):
-        super().__init__()
         self.players=[] # Track players for offline mode
 
         self.gameMenu = gameMenu(self) # Start ui
@@ -31,7 +30,6 @@ class game():
     def startGame(self, gameDetails):
         """Create game"""
         self.gameDetails=gameDetails # Save details that were passed from the ui
-        self.boatIcons = icons(self)
         if self.gameDetails["gameType"] == "online":
             # Create player, enemies will be set up by the server
             player = classPlayer(self, self.gameDetails["name"], self.gameDetails["room"], '0')
@@ -40,6 +38,7 @@ class game():
             self.players.append(player)
         elif self.gameDetails["gameType"] == "offline":
             pass
+        self.boatIcons = iconGeneratorThread(self) # Generate boat icons in background
         pass
 
     def autoSetup(self):
@@ -65,6 +64,15 @@ class websocketClientThread(QThread):
         self.webSocketClient.signals.error.connect(lambda e: print(e))
         self.webSocketClient.signals.closed.connect(lambda code, msg: self.player.websocketClosed(code, msg))
         self.threadPool.start(self.webSocketClient)
+
+class iconGeneratorThread(QThread):
+    def __init__(self, game):
+        super().__init__()
+        self.game = game
+        self.threadPool = QThreadPool().globalInstance()
+        self.iconGenerator = icons(self.game)
+        self.iconGenerator.signals.finished.connect(lambda: print("Icons generated"))
+        self.threadPool.start(self.iconGenerator)
 
 if __name__ == "__main__":
     import sys

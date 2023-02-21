@@ -116,7 +116,10 @@ class grid(QWidget):
                     button.setStyleSheet(f"background-color: {color}; border-radius: 0px; border: 0.5px solid #DDDDDD;")
                 else:
                     # State is a boat
-                    button.setIcon(self.game.boatIcons.get(state, x, y))
+                    while not hasattr(self.game, "icons"):
+                        print("Waiting for icons")
+                        __import__("time").sleep(2)
+                    button.setIcon(self.game.icons.get(state, x, y))
                     button.setIconSize(QSize(40, 40))
 
                 if self.player.isEnemy:

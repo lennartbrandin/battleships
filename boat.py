@@ -28,7 +28,7 @@ class boat:
         else:
             x1, x2 = self.x-1, self.x+self.length
             y1, y2 = self.y-1, self.y+1
-        return [(x, y) for x in range(x1, x2) for y in range(y1, y2)]
+        return [(x, y) for x in range(x1, x2+1) for y in range(y1, y2+1)]
     
     def hit(self, x, y):
         """Mark hits at index as hit"""

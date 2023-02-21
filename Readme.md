@@ -1,0 +1,1 @@
+This is a client for the battleships game, it is used in combination with the [server](https://github.com/lennardwalter/battleships) as a school project.

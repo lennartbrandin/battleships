@@ -7,17 +7,24 @@ class profilesManager():
         self.changeProfile("default")
 
     def save(self):
-        for profileName in os.listdir("profiles"):
-            if not profileName[:-5] in self.profiles:
-                profile(profileName[:-5]).deleteProfile()
+        for profile in self.profiles.values():
+            profile.saveProfile()
 
-        for config in self.profiles.values():
-            config.saveProfile()
-        
+    def saveProfile(self, profileName):
+        """Save profile"""
+        self.profiles[profileName].saveProfile()
             
     def createProfile(self, profileName):
         """Create profile"""
         self.profiles[profileName] = profile(profileName)
+
+    def renameProfile(self, oldName, newName):
+        """Rename profile"""
+        profile = self.profiles[oldName].profile
+        self.deleteProfile(oldName)
+        self.createProfile(newName)
+        self.profiles[newName].profile = profile
+        self.profiles[newName].saveProfile()
 
     def loadProfiles(self):
         """Load profiles, if nonexistent return empty dict"""
@@ -31,6 +38,11 @@ class profilesManager():
     def changeProfile(self, profileName):
         """Change profile"""
         self.profile = self.profiles[profileName]
+
+    def deleteProfile(self, profileName):
+        """Delete profile"""
+        self.profiles[profileName].deleteProfile()
+        del self.profiles[profileName]
 
 class profile():
     def __init__(self, profileName):
@@ -51,8 +63,8 @@ class profile():
     def saveProfile(self):
         """Save profile"""
         with open(f"profiles/{self.profileName}.json", 'w') as file:
-            json.dump(self.profile, file, indent=4, separators=(',', ': ')) if not self.profileName == "default" else None
+            json.dump(self.profile, file, indent=4, separators=(',', ': '))
 
     def deleteProfile(self):
         """Delete profile"""
-        os.remove(f"profiles/{self.profileName}.json") if not self.profileName == "default" else None
+        os.remove(f"profiles/{self.profileName}.json")

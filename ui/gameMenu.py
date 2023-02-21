@@ -30,10 +30,11 @@ class gameMenu(QMainWindow):
         def __init__(self, game):
             super().__init__()
             self.setSpacing(0)
-            self.details = profile("default").profile
+            self.pM = profilesManager()
+            self.details = self.pM.profiles["default"].profile
 
-            self.profiles = profileLayout()
             self.gameTypeDetails = self.gameTypeDetailsLayout(game, self.details)
+            self.profiles = profileLayout(self.pM, lambda: self.gameTypeDetails.updateGameDetailsLayout(self.gameTypeDetails.selectorGameType.currentText()))
             self.addLayout(self.gameTypeDetails)
             self.addLayout(self.profiles)
             self.addLayout(self.gameTypeDetails.gameDetails)
@@ -42,14 +43,16 @@ class gameMenu(QMainWindow):
             """Game start button and game type selector"""
             def __init__(self, game, details):
                 super().__init__()
-                self.game = game
+                self.game = game # Needed for startGame function
                 self.setSpacing(0)
+                self.details = details
+                
                 self.buttonStartGame = QPushButton("Start online game")
                 self.selectorGameType = QComboBox()
                 self.selectorGameType.addItems(["online", "offline"])
                 self.addWidget(self.selectorGameType)
                 self.addWidget(self.buttonStartGame)
-                self.gameDetails = self.gameDetailsLayout(details)
+                self.gameDetails = self.gameDetailsLayout(self.details)
 
                 self.buttonStartGame.clicked.connect(lambda: self.game.startGame(self.gameDetails.details))
                 # Update the game details layout when the game type is changed

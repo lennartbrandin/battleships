@@ -1,14 +1,15 @@
 from PyQt6.QtWidgets import *
-from profiles import profilesManager
 
 class profileLayout(QHBoxLayout):
-    def __init__(self):
+    def __init__(self, pM, updateDetails):
         super().__init__()
         self.setSpacing(0)
-        self.pM = profilesManager()
-        self.selectorProfile = QComboBox()
+
+        self.updateDetails = updateDetails # Update function of mainLayout
+        self.pM = pM
+        self.selectorProfile = QComboBox(currentIndexChanged=self.changeProfile)
         self.selectorProfile.addItems(self.pM.profiles)
-        self.selectorProfile.currentIndexChanged.connect(self.changeProfile)
+        self.selectorProfile.setCurrentText("default")
         self.addWidget(self.selectorProfile)
 
         self.addWidget(QPushButton("Manage profiles", clicked=lambda: self.openManager(self, self.pM)))
@@ -18,8 +19,9 @@ class profileLayout(QHBoxLayout):
         self.selectorProfile.addItems(self.pM.profiles)
 
     def changeProfile(self):
-        if self.selectorProfile.currentText() != "":
+        if self.selectorProfile.currentText():
             self.pM.changeProfile(self.selectorProfile.currentText())
+            self.updateDetails()
 
     def openManager(self, profileLayout, pM):
         self.manager = profileManagerDialog(profileLayout, pM)
@@ -36,11 +38,11 @@ class profileManagerDialog(QDialog):
         self.setLayout(self.layout)
 
         self.listProfiles = QListWidget()
-        self.listProfiles.addItems(self.pM.profiles)
+        self.updateList()
         self.layout.addWidget(self.listProfiles)
 
         self.layoutButtons = QVBoxLayout()
-        self.layoutButtons.addWidget(QPushButton("Edit", clicked=self.editProfile))
+        self.layoutButtons.addWidget(QPushButton("Save", clicked=self.saveProfile))
         self.layoutButtons.addWidget(QPushButton("Create", clicked=self.createProfile))
         self.layoutButtons.addWidget(QPushButton("Delete", clicked=self.deleteProfile))
         self.layoutButtons.addWidget(QPushButton("Rename", clicked=self.renameProfile))
@@ -50,31 +52,34 @@ class profileManagerDialog(QDialog):
         self.exec()
 
     def closeEvent(self, event):
-        self.pM.save()
         event.accept()
 
     def updateList(self):
         self.listProfiles.clear()
         self.listProfiles.addItems(self.pM.profiles)
 
-    def editProfile(self):
-        pass
+    def saveProfile(self):
+        item = self.listProfiles.currentItem().text()
+        self.pM.saveProfile(item)
 
     def createProfile(self):
         name, ok = QInputDialog.getText(self, "Create profile", "Profile name")
-        if ok:
-            if name != "":
-                self.pM.createProfile(name)
-                self.pM.profiles[name] = self.pM.profile
-                self.update()
+        if ok and name: # Check if the user clicked OK and if the text is not empty
+            self.pM.createProfile(name)
+            #self.pM.profiles[name] = self.pM.profile
+            self.update()
 
     def deleteProfile(self):
         item = self.listProfiles.currentItem().text()
-        del self.pM.profiles[item] 
+        self.pM.deleteProfile(item)
         self.update() 
 
     def renameProfile(self):
-        pass
+        item = self.listProfiles.currentItem().text()
+        name, ok = QInputDialog.getText(self, "Rename profile", "Profile name")
+        if ok and name: 
+            self.pM.renameProfile(item, name)
+            self.update()
 
     def update(self):
         self.profileLayout.selectorUpdate()

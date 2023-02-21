@@ -4,14 +4,22 @@ from boat import boat
 from io import BytesIO
 from PyQt6.QtGui import QIcon, QPixmap
 from PIL import Image
+from PyQt6.QtCore import QRunnable, pyqtSignal, pyqtSlot, QObject
 
-class icons():
+class icons(QRunnable):
     def __init__(self, game):
+        super().__init__()
         self.vIcons = {}
         self.hIcons = {}
 
         self.game = game
+        self.signals = iconGeneratorSignals()
+
+    @pyqtSlot()
+    def run(self):
         self.loadBoatIcons()
+        self.game.icons = self
+        self.signals.finished.emit()
 
     def loadBoatIcons(self):
         """Generate all boat icons"""
@@ -79,3 +87,8 @@ class boatImage():
         if not os.path.exists(path):
             path = os.path.join("ui", "graphics", "default.gif")
         return path
+    
+
+class iconGeneratorSignals(QObject):
+    """Send signals from worker thread"""
+    finished = pyqtSignal()

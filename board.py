@@ -89,7 +89,39 @@ class board:
                 return True
         return False
                 
-    dispatch(int, int)
+    @dispatch(int, int)
     def get(self, x, y):
         """Get state of indexes"""
         return self.board[x][y] # This can be the boat_obj, filler or 'MISS'
+
+def randomBoard():
+    # Test code
+    import random
+    def place(b, length):
+        attempt = 0
+        while True:
+            isVertical = random.choice([True, False])
+            x = random.randint(0, 9)
+            y = random.randint(0, 9)
+            try:
+                b.placeBoat(x, y, length, isVertical)
+                return b
+            except Exception:
+                attempt += 1
+                if attempt > 10000:
+                    placeAll()
+                    break
+
+    def placeAll():            
+        b = board({'0': 0, '1': 0, '2': 4, '3': 3, '4': 2, '5': 1}, 10, 'W')
+        for length, amount in b.maxBoats.items():
+            for i in range(amount):
+                t = place(b, length)
+        return t
+
+    b = None
+    impossibleBoardCount = 0
+    while b is None:
+        impossibleBoardCount += 1
+        b = placeAll()
+    return b
