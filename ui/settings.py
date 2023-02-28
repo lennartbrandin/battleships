@@ -1,38 +1,52 @@
+from PyQt6.QtGui import *
 from PyQt6.QtWidgets import *
+from PyQt6.QtCore import *
 
-class profileLayout(QHBoxLayout):
-    def __init__(self, pM, updateDetails):
+class selectorGameType(QComboBox):
+    """Game type selector"""
+    def __init__(self, profile):
         super().__init__()
-        self.setSpacing(0)
+        self.profile = profile
 
-        self.updateDetails = updateDetails # Update function of mainLayout
+        # Selector settings
+        self.addItems(["online", "offline"])
+        self.setCurrentText(self.profile.profile["gameType"])
+        self.currentTextChanged.connect(lambda gameType: self.update(gameType))
+
+    def update(self, gameType):
+        """Update the game type"""
+        self.profile.profile["gameType"] = gameType
+
+class selectorProfile(QComboBox):
+    """Profile selector"""
+    def __init__(self, pM):
+        super().__init__()
         self.pM = pM
-        self.selectorProfile = QComboBox(currentIndexChanged=self.changeProfile)
-        self.selectorProfile.addItems(self.pM.profiles)
-        self.selectorProfile.setCurrentText("default")
-        self.addWidget(self.selectorProfile)
 
-        self.addWidget(QPushButton("Manage profiles", clicked=lambda: self.openManager(self, self.pM)))
+        # Selector settings
+        self.selectorUpdate()
+        self.currentTextChanged.connect(lambda profile: self.update(profile))
 
     def selectorUpdate(self):
-        self.selectorProfile.clear()
-        self.selectorProfile.addItems(self.pM.profiles)
+        """Update the selector"""
+        self.clear()
+        self.addItems(self.pM.profiles.keys())
+        self.setCurrentText(self.pM.profile.profileName)
 
-    def changeProfile(self):
-        if self.selectorProfile.currentText():
-            self.pM.changeProfile(self.selectorProfile.currentText())
-            self.updateDetails()
+    def update(self, profile):
+        """Update the current profile"""
+        if profile:
+            self.pM.changeProfile(profile)
 
-    def openManager(self, profileLayout, pM):
-        self.manager = profileManagerDialog(profileLayout, pM)
-
-class profileManagerDialog(QDialog):
-    def __init__(self, profileLayout, pM):
+class profileEditor(QDialog):
+    """Profile editor"""
+    def __init__(self, pM, selectorProfile):
         super().__init__()
+        self.pM = pM
+        self.selectorProfile = selectorProfile
+
         self.setWindowTitle("Profiles manager")
         self.setFixedSize(300, 200)
-        self.profileLayout = profileLayout
-        self.pM = pM
 
         self.layout = QHBoxLayout()
         self.setLayout(self.layout)
@@ -49,8 +63,6 @@ class profileManagerDialog(QDialog):
 
         self.layout.addLayout(self.layoutButtons)
 
-        self.exec()
-
     def closeEvent(self, event):
         event.accept()
 
@@ -64,23 +76,25 @@ class profileManagerDialog(QDialog):
 
     def createProfile(self):
         name, ok = QInputDialog.getText(self, "Create profile", "Profile name")
-        if ok and name: # Check if the user clicked OK and if the text is not empty
+        if ok and name and name != "default": # Check if the user clicked OK and if the text is not empty
             self.pM.createProfile(name)
             #self.pM.profiles[name] = self.pM.profile
             self.update()
 
     def deleteProfile(self):
         item = self.listProfiles.currentItem().text()
+        if item == "default":
+            return
         self.pM.deleteProfile(item)
         self.update() 
 
     def renameProfile(self):
         item = self.listProfiles.currentItem().text()
         name, ok = QInputDialog.getText(self, "Rename profile", "Profile name")
-        if ok and name: 
+        if ok and name and name != "default":
             self.pM.renameProfile(item, name)
             self.update()
 
     def update(self):
-        self.profileLayout.selectorUpdate()
+        self.selectorProfile.selectorUpdate()
         self.updateList()

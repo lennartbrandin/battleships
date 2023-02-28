@@ -1,9 +1,8 @@
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
-from ui.gameMenu import deleteItems
-from ui.timer import timer
-from ui.gameOver import gameOverDialog
+from ui.mainMenu import deleteItems
+from ui.dialogs import gameOverDialog, timer
 from multipledispatch import dispatch
 
 class grid(QWidget):
@@ -38,7 +37,7 @@ class grid(QWidget):
     def gameOver(self, player, reason):
         self.gameInfo.timer.timer.stop()
         self.gameInfo.timer.button.setText("Game ended")
-        self.gameOver = gameOverDialog(player, reason)
+        self.gameOver = gameOverDialog(self, player, reason)
 
     def closeEvent(self, event):
         self.server.close()

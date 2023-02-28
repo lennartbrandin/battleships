@@ -58,7 +58,7 @@ class profile():
             with open(f"profiles/{self.profileName}.json") as file:
                 return json.load(file)
         else:
-            return {}
+            return profile("default").profile
 
     def saveProfile(self):
         """Save profile"""

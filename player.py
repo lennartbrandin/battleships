@@ -1,5 +1,5 @@
 from ui.grid import grid as classGrid
-from ui.placeholder import placeholder as classPlaceholder
+from ui.dialogs import placeholderDialog as classPlaceholder
 class player:
     """A player in the game"""
     def __init__(self, game, name, roomName, filler):
@@ -69,14 +69,14 @@ class player:
         self.enemy=enemy(self.game, enemyName, self.roomName)
         self.enemy.enemy=self # The player object is the enemy's enemy
 
-    def shootSelf(self, x, y, override=False):
-        """Shoot indexes at self, return if isHit"""
-        return self.board.placeShot(x, y, override)
+    # def shootSelf(self, x, y, override=False):
+    #     """Shoot indexes at self, return if isHit"""
+    #     return self.board.placeShot(x, y, override)
 
-    def shootEnemy(self, x, y, override=False):
-        """Shoot enemy at indexes, return if isHit"""
-        # TODO: Add websocket communication
-        return self.enemy.shootSelf(x, y, override)
+    # def shootEnemy(self, x, y, override=False):
+    #     """Shoot enemy at indexes, return if isHit"""
+    #     # TODO: Add websocket communication
+    #     return self.enemy.shootSelf(x, y, override)
                 
 class enemy(player):
     """An enemy of a player, holding all known information about the enemy"""

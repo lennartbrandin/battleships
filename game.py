@@ -3,7 +3,8 @@ from board import board as classBoard
 from player import player as classPlayer, enemy as classEnemy, ai as classAI
 from PyQt6.QtCore import QThread, QThreadPool
 from websocketClient import websocketClient
-from ui.gameMenu import gameMenu
+# from ui.gameMenu import gameMenu
+from ui.mainMenu import mainMenu
 from ui.graphics.boatImage import icons
 
 class game():
@@ -11,7 +12,7 @@ class game():
     def __init__(self):
         self.players=[] # Track players for offline mode
 
-        self.gameMenu = gameMenu(self) # Start ui
+        self.gameMenu = mainMenu(self) # Start ui
 
     def __str__(self):
         """Return game and its players as formatted string"""
@@ -38,7 +39,10 @@ class game():
             self.players.append(player)
         elif self.gameDetails["gameType"] == "offline":
             pass
-        self.boatIcons = iconGeneratorThread(self) # Generate boat icons in background
+        if not hasattr(self, "boatIcons"):
+            self.boatIcons = iconGeneratorThread(self) # Generate boat icons in background
+        else:
+            print("Boat icons already generated")
         pass
 
     def autoSetup(self):

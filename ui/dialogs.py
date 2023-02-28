@@ -2,6 +2,48 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 import time
 
+class gameOverDialog(QDialog):
+    def __init__(self, grid, winner, reason):
+        super(QDialog, self).__init__()
+        self.grid = grid
+        self.winner = winner
+        self.reason = reason
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+        self.layout.addWidget(QLabel("Game over"))
+        self.layout.addWidget(QLabel("Winner: " + self.winner))
+        self.layout.addWidget(QLabel("Reason: " + self.reason))
+        self.layout.addWidget(QPushButton("Close", clicked=self.close))
+        self.exec()
+
+    def closeEvent(self, event):
+        self.grid.close()
+        event.accept()
+
+class placeholderDialog(QWidget):
+    def __init__(self, player, message):
+        super(QWidget, self).__init__()
+        self.player = player
+        self.server = player.server.socket
+        self.layout = QHBoxLayout()
+        self.setLayout(self.layout)
+        self.message = QLabel(message)
+        self.layout.addWidget(self.message)
+        self.layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setWindowTitle("Waiting")
+        self.resize(300, 100)
+        self.show()
+
+    def closeEvent(self, event):
+        try:
+            self.server.close() if self.player.phase != "SETUP" else None
+        except AttributeError:
+            pass
+        event.accept()
+
+    def update(self, message):
+        self.message.setText(message)
+
 class timer(QWidget):
     def __init__(self ):
         super(QWidget, self).__init__()

@@ -36,31 +36,12 @@ class websocketClient(QRunnable):
         match type:
             case "GAME_PHASE_CHANGED":
                 self.signals.phase.emit(data)
-                match data["phase"]:
-                    case "WAITING_FOR_PLAYERS":
-                        pass
-                    case "SETUP":
-                        pass
-                    case "IN_PROGRESS":
-                        pass
-                    case "GAME_OVER":
-                        pass
             case "PLAYER_CHANGED":
-                if data["name"] == self.name:
-                    pass
-                else:
                     pass
             case "SHIP_PLACED":
                 self.signals.shipPlaced.emit(data["x"], data["y"], data["length"], data["direction"])
             case "SHOT_FIRED":
                 self.signals.shotFired.emit(data["x"], data["y"], data["player"], data["result"])
-                match data["result"]:
-                    case "HIT":
-                        pass
-                    case "MISS":
-                        pass
-                    case "SUNK":
-                        pass
             case "ERROR":
                 pass
 
