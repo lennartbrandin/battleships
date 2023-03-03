@@ -58,7 +58,7 @@ class websocketClient(QRunnable):
 
     @dispatch(boat)
     def sendPlaceBoat(self, boat):
-        self.sendPlaceBoat(boat.x, boat.y, boat.length, boat.isVertical)
+        self.sendPlaceBoat(boat.x, boat.y, boat.length, "VERTICAL" if boat.isVertical else "HORIZONTAL")
 
     def sendFireShot(self, x, y):
         self.sendAction("FIRE_SHOT", {"x": x, "y": y})

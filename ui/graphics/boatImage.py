@@ -42,15 +42,24 @@ class icons(QRunnable):
         else:
             return icon(boat.length).getIcon(index)
 
-
 class boatImage():
     def __init__(self, boat):
         self.boat = boat
         path = self.getPath(boat.length)
-        col = 1 if self.boat.isVertical else self.boat.length
-        row = self.boat.length if self.boat.isVertical else 1
-        # Rotate image if not vertical
+
+        # Rotate image
+        col = 1
+        row = self.boat.length
         self.tiles = image_slicer.slice(path, col=col, row=row, save=False) # Slice image into tiles
+        
+        if not self.boat.isVertical:
+            for tile in self.tiles:
+                tile.image = tile.image.rotate(90, expand=True)
+
+        # Stretch image
+        #col = 1 if self.boat.isVertical else self.boat.length
+        #row = self.boat.length if self.boat.isVertical else 1
+
         self.icons = [self.convertToIcon(tile.image, i) for i, tile in enumerate(self.tiles)] # Convert tiles to icons
         self.hitIcons = [self.getTintedIcon(i) for i in range(len(self.tiles))] # Tint tiles and convert to icons
     

@@ -8,7 +8,7 @@ from multipledispatch import dispatch
 class grid(QWidget):
     def __init__(self, player):
         super(QWidget, self).__init__()
-        self.player = player
+        # self.player = player
         self.server = player.server.socket
         self.mainLayout = QVBoxLayout()
 
@@ -152,10 +152,11 @@ class grid(QWidget):
             self.addWidget(self.selectorShipDirection)
 
             def autoPlace():
-                for l in range(len(self.board.maxBoats)):
-                    for a in range(self.board.size):
-                        for b in range(self.board.size):
-                            self.player.server.sendPlaceBoat(b, a, l, self.details["direction"])
+                newBoard = self.player.board.autoPlace()
+                for boatLength in newBoard.boats:
+                    for boat in boatLength:
+                        self.player.server.sendPlaceBoat(boat)
+
             self.placeAllBoats = QPushButton("AutoPlace")
             self.placeAllBoats.clicked.connect(lambda: autoPlace())
             self.addWidget(self.placeAllBoats)
