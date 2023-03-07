@@ -45,12 +45,12 @@ class player:
         self.board.placeBoat(x, y, length, isVertical)
         self.grid.player.board.update()
 
-    def shotFired(self, x, y, player, result):
+    def shotFired(self, x, y, player, result, shipCoordinates):
         if self.enemy.name == player:
             self.board.placeShot(x, y)
             self.grid.player.board.update()
         else:
-            self.enemy.board.placeShot(x, y, override=result)
+            self.enemy.board.placeShot(x, y, override=result, shipCoordinates=shipCoordinates)
             self.grid.enemy.board.update()
 
     def createPlaceholder(self):

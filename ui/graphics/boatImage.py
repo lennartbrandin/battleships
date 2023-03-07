@@ -67,7 +67,6 @@ class boatImage():
         """Convert the image to a QIcon"""
         # PIL.image.image -> BytesIO -> QPixmap -> QIcon
         byteIO = BytesIO() 
-        #self.tiles[index].image.save(byteIO, format="PNG")
         image.save(byteIO, format="PNG")
         byteArr = byteIO.getvalue()
         pixmap = QPixmap()
@@ -77,9 +76,9 @@ class boatImage():
     def getTintedIcon(self, index):
         """Tint the image and convert it to a QIcon"""
         original = self.tiles[index].image
-        R, G, B = original.split() # Split image into RGB channels
-        R = R.point(lambda i: i * 2) # Tint red channel
-        tinted = Image.merge("RGB", (R, G, B)) # Merge RGB channels
+        R, G, B, A = original.split() # Split image into RGBA channels
+        R = R.point(lambda i: i * 5) # Tint red channel
+        tinted = Image.merge("RGBA", (R, G, B, A)) # Merge RGBA channels
         return self.convertToIcon(tinted, index)
     
     def getIcon(self, index):

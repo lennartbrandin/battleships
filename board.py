@@ -37,7 +37,7 @@ class board:
         boat = class_boat(length, isVertical, x, y, isDestroyed)
         self.placeBoat(boat)
 
-    def placeShot(self, x, y, override=False):
+    def placeShot(self, x, y, override=False, shipCoordinates=[]):
         """Shoot indexes at board, return if isHit"""
         if self.checkOutOfBounds(x, y):
             raise Exception("Shot is out of bounds")
@@ -49,14 +49,18 @@ class board:
             state.hit(x, y)
             return True
         else:
-            if override != False:
-                # If override is set, mark indexes as override
-                # Used if websocket communicates a shot
-                self.board[x][y] = override
-                return True if override == 'HIT' else False
-            else:
-                self.board[x][y] = 'MISS'
-                return False
+            match override:
+                case 'HIT':
+                    self.board[x][y] = override
+                    return True
+                case 'SUNK':
+                    isVertical = shipCoordinates[1][0] - shipCoordinates[0][0] == 0
+                    boat = class_boat(len(shipCoordinates), isVertical, shipCoordinates[0][0], shipCoordinates[0][1], isDestroyed=True)
+                    self.placeBoat(boat)
+                    return True
+                case _:
+                    self.board[x][y] = 'MISS'
+                    return False
 
     def invalidBoatSize(self, boat):
         """Check if boat size is invalid"""

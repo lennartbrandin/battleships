@@ -41,7 +41,7 @@ class websocketClient(QRunnable):
             case "SHIP_PLACED":
                 self.signals.shipPlaced.emit(data["x"], data["y"], data["length"], data["direction"])
             case "SHOT_FIRED":
-                self.signals.shotFired.emit(data["x"], data["y"], data["player"], data["result"])
+                self.signals.shotFired.emit(data["x"], data["y"], data["player"], data["result"], data["shipCoordinates"])
             case "ERROR":
                 pass
 
@@ -69,7 +69,7 @@ class WebsocketSignals(QObject):
     opened = pyqtSignal()
     phase = pyqtSignal(dict)
     shipPlaced = pyqtSignal(int, int, int, str)
-    shotFired = pyqtSignal(int, int, str, str)
+    shotFired = pyqtSignal(int, int, str, str, object)
     message = pyqtSignal(str)
     error = pyqtSignal(Exception)
     closed = pyqtSignal(int, str)

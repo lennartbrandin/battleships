@@ -109,7 +109,7 @@ class grid(QWidget):
                 state = self.board.get(x, y)
                 button = QPushButton()
                 button.setFixedSize(40, 40)
-                colors = {"HIT": "red", "MISS": "grey", "SUNK": "red", self.player.board.filler: "white"}
+                colors = {"HIT": "red", "MISS": "grey", "SUNK": "black", self.player.board.filler: "white"}
                 if state in colors:
                     color = colors[state]
                     button.setStyleSheet(f"background-color: {color}; border-radius: 0px; border: 0.5px solid #DDDDDD;")

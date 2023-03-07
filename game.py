@@ -63,7 +63,7 @@ class websocketClientThread(QThread):
         self.webSocketClient.signals.opened.connect(lambda: self.player.createPlaceholder())
         self.webSocketClient.signals.phase.connect(lambda data: self.player.setPhase(data))
         self.webSocketClient.signals.shipPlaced.connect(lambda x, y, length, direction: self.player.shipPlaced(x, y, length, direction == "VERTICAL"))
-        self.webSocketClient.signals.shotFired.connect(lambda x, y, player, result: self.player.shotFired(x, y, player, result))
+        self.webSocketClient.signals.shotFired.connect(lambda x, y, player, result, shipCoordinates: self.player.shotFired(x, y, player, result, shipCoordinates))
         self.webSocketClient.signals.message.connect(lambda message: print(message))
         self.webSocketClient.signals.error.connect(lambda e: print(e))
         self.webSocketClient.signals.closed.connect(lambda code, msg: self.player.websocketClosed(code, msg))
