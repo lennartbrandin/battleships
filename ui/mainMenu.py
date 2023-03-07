@@ -33,7 +33,7 @@ class mainMenu(QMainWindow):
         self.startLayout.addWidget(self.buttonStartGame)
 
         # Profile layout
-        self.profileLayout = profileLayout(self.pM.profile.profile)
+        self.profileLayout = profileLayout(self.pM)
         self.profileManagement = profileManagementLayout(self.pM, self.profileLayout)
 
         # Add layouts to main layout
@@ -74,24 +74,24 @@ class profileManagementLayout(QHBoxLayout):
 
 class profileLayout(QVBoxLayout):
     """Profile layout holding the detail prompts"""
-    def __init__(self, details):
+    def __init__(self, pM):
         super().__init__()
-        self.details = details
+        self.pM = pM
 
         # Style
         self.setSpacing(0)
 
-        self.update(self.details["gameType"]) # Creation of layout using the default gameType
+        self.update(self.pM.profile.profile["gameType"]) # Creation of layout using the default gameType
 
     def update(self, gameType):
         """Update the game details layout based on the game type"""
-        self.details["gameType"] = gameType
+        self.pM.profile.profile["gameType"] = gameType
 
         # Delete all items in the layout
         deleteItems(self)
 
         # Add the correct items to the layout
-        def detailPrompt(label, dict=self.details):
+        def detailPrompt(label, dict=self.pM.profile.profile):
             """Create a label and input for a given game detail"""
             layout = QHBoxLayout()
             layout.addWidget(QLabel(f"{label}:"))
@@ -109,7 +109,7 @@ class profileLayout(QVBoxLayout):
 
             maxBoats = QHBoxLayout()
             maxBoats.addWidget(QLabel("Max boats:"))
-            [maxBoats.addLayout(detailPrompt(str(label), self.details["max boats"])) for label in self.details["max boats"]]
+            [maxBoats.addLayout(detailPrompt(str(label), self.pM.profile.profile["max boats"])) for label in self.pM.profile.profile["max boats"]]
             self.addLayout(maxBoats)  
 
 def deleteItems(layout):
