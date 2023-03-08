@@ -20,8 +20,10 @@ class websocketClient(QRunnable):
     def run(self):
         """Start websocket connection"""
         s = "s" if self.port == "443" else "" # Use secure connection if port is 443
+        address = f"ws{s}://{self.url}:{self.port}/?room={self.room}&name={self.name}"
+        print(f"Connecting to {address}")
         self.socket = websocket.WebSocketApp(
-            f"ws{s}://{self.url}:{self.port}/?room={self.room}&name={self.name}",
+            address,
             on_open=lambda ws: self.signals.opened.emit(),
             on_message=self.on_event,
             on_error=lambda ws, e: self.signals.error.emit(e),

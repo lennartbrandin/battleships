@@ -17,6 +17,7 @@ class grid(QWidget):
 
         self.setWindowTitle("Battleships")
         # Apply style only on this dialog
+        self.gameOverDialogs = []
         self.setObjectName("grid")
         self.setStyleSheet("QWidget#grid {border: 1px solid #DDDDDD;}")
         self.setLayout(self.mainLayout)
@@ -37,7 +38,11 @@ class grid(QWidget):
     def gameOver(self, player, reason):
         self.gameInfo.timer.timer.stop()
         self.gameInfo.timer.button.setText("Game ended")
-        self.gameOver = gameOverDialog(self, player, reason)
+        self.gameOverDialogs.append(gameOverDialog(self, player, reason)) # List because GamveOver can occure multiple times
+
+    def closeGameOver(self):
+        for dialog in self.gameOver:
+            dialog.close()
 
     def closeEvent(self, event):
         self.server.close()

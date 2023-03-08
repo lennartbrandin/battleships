@@ -9,7 +9,7 @@ class selectorGameType(QComboBox):
         self.profile = profile
 
         # Selector settings
-        self.addItems(["online", "offline"])
+        self.addItems(["online"]) #, "offline"])
         self.setCurrentText(self.profile.profile["gameType"])
         self.currentTextChanged.connect(lambda gameType: self.update(gameType))
 

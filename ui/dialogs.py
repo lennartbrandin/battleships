@@ -17,6 +17,7 @@ class gameOverDialog(QDialog):
         self.exec()
 
     def closeEvent(self, event):
+        # self.grid.closeGameOver()
         self.grid.close()
         event.accept()
 

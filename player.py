@@ -61,8 +61,10 @@ class player:
     def websocketClosed(self, code, message):
         """Close the placeholder on websocket close"""
         print(f"Websocket closed with code {code} and message: {message}")
-        self.placeholder.close() 
-        self.grid.close() if hasattr(self, "grid") else None
+        if hasattr(self, "placeholder"):
+            self.placeholder.close() 
+        elif hasattr(self, "grid"):
+            self.grid.close()
 
     def setEnemy(self, enemyName):
         """Set the enemy of the player"""

@@ -13,7 +13,7 @@ class mainMenu(QMainWindow):
 
         # Style
         self.setWindowTitle("Battleships")
-        self.resize(800, 600)
+        self.resize(400, 300)
 
         self.layout = QVBoxLayout()
         self.centralWidget = QWidget()
@@ -21,29 +21,32 @@ class mainMenu(QMainWindow):
         self.setCentralWidget(self.centralWidget)
 
         # Game start button & game type selector
-        self.startLayout = QHBoxLayout()
+        self.startLayout = QVBoxLayout()
         self.startLayout.setSpacing(0)
-        self.buttonStartGame = QPushButton("Start online game")
+        self.buttonStartGame = QPushButton("Start game")
         self.buttonStartGame.clicked.connect(lambda: self.game.startGame(self.pM.profile.profile))
 
         self.selectorGameType = selectorGameType(self.pM.profile)
         self.selectorGameType.currentTextChanged.connect(lambda gameType: self.profileLayout.update(gameType))
 
-        self.startLayout.addWidget(self.selectorGameType)
         self.startLayout.addWidget(self.buttonStartGame)
+        self.startLayout.addWidget(self.selectorGameType)
 
         # Profile layout
         self.profileLayout = profileLayout(self.pM)
         self.profileManagement = profileManagementLayout(self.pM, self.profileLayout)
 
         # Add layouts to main layout
-        self.layout.addLayout(self.startLayout)
-        self.layout.addLayout(self.profileManagement)
+        self.topLayout = QHBoxLayout()
+        self.topLayout.addLayout(self.profileManagement)
+        self.topLayout.addLayout(self.startLayout)
+
+        self.layout.addLayout(self.topLayout)
         self.layout.addLayout(self.profileLayout)
 
         self.show()
 
-class profileManagementLayout(QHBoxLayout):
+class profileManagementLayout(QVBoxLayout):
     """Profile selector and profile editor"""
     def __init__(self, pM, profileLayout):
         super().__init__()
@@ -64,8 +67,8 @@ class profileManagementLayout(QHBoxLayout):
         self.buttonEditProfile.clicked.connect(lambda: self.openProfileEditor())
 
         # Add widgets to layout
-        self.addWidget(self.selectorProfile)
         self.addWidget(self.buttonEditProfile)
+        self.addWidget(self.selectorProfile)
 
     def openProfileEditor(self):
         """Open the profile editor"""
@@ -104,13 +107,13 @@ class profileLayout(QVBoxLayout):
         # Add the correct items to the layout
         if gameType == "online":
             [self.addLayout(detailPrompt(label)) for label in ["Address", "Port", "Room", "Name"]]
-        elif gameType == "offline":
-            [self.addLayout(detailPrompt(label)) for label in ["Board size", "Player amount"]]
+        # elif gameType == "offline":
+        #     [self.addLayout(detailPrompt(label)) for label in ["Board size", "Player amount"]]
 
-            maxBoats = QHBoxLayout()
-            maxBoats.addWidget(QLabel("Max boats:"))
-            [maxBoats.addLayout(detailPrompt(str(label), self.pM.profile.profile["max boats"])) for label in self.pM.profile.profile["max boats"]]
-            self.addLayout(maxBoats)  
+        #     maxBoats = QHBoxLayout()
+        #     maxBoats.addWidget(QLabel("Max boats:"))
+        #     [maxBoats.addLayout(detailPrompt(str(label), self.pM.profile.profile["max boats"])) for label in self.pM.profile.profile["max boats"]]
+        #     self.addLayout(maxBoats)  
 
 def deleteItems(layout):
     """Delete all items in the layout"""
