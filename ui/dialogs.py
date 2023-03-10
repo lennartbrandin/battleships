@@ -85,6 +85,7 @@ class timer(QWidget):
     class pauseDialog(QDialog):
         def __init__(self, parent):
             super(QDialog, self).__init__()
+            self.setWindowTitle("Paused")
             self.parentLayout = parent
             layout = QVBoxLayout()
             layout.addWidget(QLabel("Game is paused"))
@@ -100,6 +101,16 @@ class timer(QWidget):
         def resume(self):
             self.close()
             self.parentLayout.start()
+
+class error(QDialog):
+    def __init__(self, message):
+        super(QDialog, self).__init__()
+        self.setWindowTitle("Error")
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel(message))
+        layout.addWidget(QPushButton("Close", clicked=self.close))
+        self.setLayout(layout)
+        self.exec()
 
 if __name__ == "__main__":
     import sys

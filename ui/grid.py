@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from ui.mainMenu import deleteItems
-from ui.dialogs import gameOverDialog, timer
+from ui.dialogs import gameOverDialog, timer, error
 from multipledispatch import dispatch
 
 class grid(QWidget):
@@ -35,6 +35,9 @@ class grid(QWidget):
         self.mainLayout.addLayout(self.playerLayouts)
         self.mainLayout.addLayout(self.boatDetails)
 
+    def error(self, message):
+        error(message)
+
     def gameOver(self, player, reason):
         self.gameInfo.timer.timer.stop()
         self.gameInfo.timer.button.setText("Game ended")
@@ -53,9 +56,11 @@ class grid(QWidget):
             super().__init__()
             self.roomName = self.roomNameLayout(roomName)
             self.gamePhase = self.gamePhaseLayout(gamePhase)
+            self.currentPlayer = self.currentPlayerLayout("None")
             self.timer = timer()
             self.addLayout(self.roomName)
             self.addLayout(self.gamePhase)
+            self.addLayout(self.currentPlayer)
             self.addWidget(self.timer)
 
         class roomNameLayout(QHBoxLayout):
@@ -67,6 +72,19 @@ class grid(QWidget):
                 self.addWidget(self.name)
                 self.setAlignment(Qt.AlignmentFlag.AlignLeft)
                 self.setSpacing(0)
+
+        class currentPlayerLayout(QHBoxLayout):
+            def __init__(self, player):
+                super().__init__()
+                self.label = QLabel("Current player: ")
+                self.player = QLabel(player)
+                self.addWidget(self.label)
+                self.addWidget(self.player)
+                self.setAlignment(Qt.AlignmentFlag.AlignLeft)
+                self.setSpacing(0)
+
+            def update(self, player):
+                self.player.setText(player)
 
         class gamePhaseLayout(QHBoxLayout):
             def __init__(self, phase):
@@ -142,8 +160,6 @@ class grid(QWidget):
             self.board = player.board
             self.details = {}
             self.defaultValues()
-            # TODO: Automatically get max Boats
-            # TODO: Display number of boats left
             self.selectorShipLength = QComboBox()
             self.selectorShipLength.addItems([str(k) for k, v in self.board.maxBoats.items()])
             self.selectorShipLength.setCurrentText(self.details["length"])

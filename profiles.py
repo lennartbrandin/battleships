@@ -67,6 +67,6 @@ class profile():
 
     def deleteProfile(self):
         """Delete profile"""
-        with f"profiles/{self.profileName}.json" as file:
-            if os.path.exists(file):
-                os.remove(file)
+        file = f"profiles/{self.profileName}.json"
+        if os.path.exists(file):
+            os.remove(file)

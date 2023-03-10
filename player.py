@@ -45,6 +45,9 @@ class player:
         self.board.placeBoat(x, y, length, isVertical)
         self.grid.player.board.update()
 
+    def playerChanged(self, player):
+        self.grid.gameInfo.currentPlayer.update(player)
+
     def shotFired(self, x, y, player, result, shipCoordinates):
         if self.enemy.name == player:
             self.board.placeShot(x, y)
@@ -57,6 +60,13 @@ class player:
         """Create a placeholder on websocket open"""
         print("Creating placeholder")
         self.placeholder = classPlaceholder(self, "Connecting to server")
+
+    def websocketError(self, error):
+        print(f"Websocket error: {error}")
+        if hasattr(self, "placeholder"):
+            self.placeholder.update(error)
+        if hasattr(self, "grid"):
+            self.grid.error(error)
 
     def websocketClosed(self, code, message):
         """Close the placeholder on websocket close"""

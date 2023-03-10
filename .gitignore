@@ -8,6 +8,10 @@ profiles/*json
 doc/
 
 # C extensions
+game.build/
+game.dist/
+game.onefile-build/
+game.spec/
 *.so
 
 # Distribution / packaging
