@@ -36,7 +36,9 @@ class grid(QWidget):
         self.mainLayout.addLayout(self.boatDetails)
 
     def error(self, message):
-        error(message)
+        # The popup window was obtrusive, it is disabled for now
+        # error(message) 
+        pass 
 
     def gameOver(self, player, reason):
         self.gameInfo.timer.timer.stop()
@@ -161,7 +163,7 @@ class grid(QWidget):
             self.details = {}
             self.defaultValues()
             self.selectorShipLength = QComboBox()
-            self.selectorShipLength.addItems([str(k) for k, v in self.board.maxBoats.items()])
+            self.selectorShipLength.addItems([str(k) for k, v in self.board.maxBoats.items()][2:])
             self.selectorShipLength.setCurrentText(self.details["length"])
             self.selectorShipLength.currentTextChanged.connect(lambda v: self.details.update({"length": v}))
             self.addWidget(self.selectorShipLength)
